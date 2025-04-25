@@ -1,0 +1,82 @@
+/* Page wrapper */
+.detail-page {
+  background: #121212;
+  color: #fff;
+  min-height: 100vh;
+}
+
+/* Backdrop banner */
+.detail-banner {
+  position: relative;
+  height: 50vh;
+  background-size: cover;
+  background-position: center;
+}
+
+.detail-info {
+  position: absolute;
+  bottom: 1rem;
+  left: 2rem;
+  max-width: 60%;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.detail-info h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+.detail-info .sub {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 1rem;
+}
+
+.detail-info .overview {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* Cast section */
+.cast-section {
+  max-width: 1280px;
+  margin: 2rem auto;
+  padding: 0 2rem;
+}
+
+.cast-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.cast-card {
+  background: #1e1e1e;
+  border-radius: 6px;
+  overflow: hidden;
+  text-align: center;
+  padding-bottom: 0.5rem;
+}
+
+.cast-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.cast-name {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.cast-role {
+  font-size: 0.85rem;
+  color: #bbb;
+}

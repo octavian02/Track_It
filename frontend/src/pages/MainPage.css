@@ -1,0 +1,27 @@
+/* src/pages/MainPage.css */
+
+.main-page {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+  color: #fff;
+  padding-bottom: 2rem;
+}
+
+.section {
+  max-width: 1280px;
+  margin: 2rem auto;
+  padding: 0 1rem;  
+}
+
+.section-title {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* responsive grid: min 200px cards, auto‐fill row */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}

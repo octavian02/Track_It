@@ -1,0 +1,10 @@
+{
+  
+    "eslint.workingDirectories": [
+        "backend",
+        "frontend"
+    ],
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "notebook.defaultFormatter": "esbenp.prettier-vscode",
+
+}
