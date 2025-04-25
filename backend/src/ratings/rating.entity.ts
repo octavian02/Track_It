@@ -1,3 +1,4 @@
+// src/ratings/rating.entity.ts
 import {
   Entity,
   Column,
@@ -7,8 +8,10 @@ import {
 } from 'typeorm';
 import { User } from '../user/user.entity';
 
+export type MediaType = 'movie' | 'tv';
+
 @Entity()
-@Unique(['user', 'movieId'])
+@Unique(['user', 'mediaId'])
 export class Rating {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,10 +20,18 @@ export class Rating {
   user: User;
 
   @Column()
-  movieId: number;
+  @Column({ nullable: true })
+  mediaId: number;
+
+  @Column()
+  @Column({ nullable: true })
+  mediaName: string;
+
+  @Column({ type: 'enum', enum: ['movie', 'tv'], default: 'movie' })
+  mediaType: MediaType;
 
   @Column('numeric', { precision: 3, scale: 1, default: 0 })
-  score: number; // between 1.0 and 10.0
+  score: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   ratedAt: Date;

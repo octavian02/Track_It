@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -9,6 +10,8 @@ import { MoviesModule } from './movies/movies.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { WatchlistModule } from './watchlist/watchlist.module';
 import { AuthModule } from 'auth/auth.module';
+import { ShowsModule } from './shows/shows.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -32,6 +35,8 @@ import { AuthModule } from 'auth/auth.module';
     WatchlistModule,
     RatingsModule,
     AuthModule,
+    ShowsModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

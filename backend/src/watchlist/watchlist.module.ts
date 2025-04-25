@@ -1,3 +1,4 @@
+// src/watchlist/watchlist.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WatchlistItem } from './watchlist.entity';

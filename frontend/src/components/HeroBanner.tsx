@@ -4,21 +4,27 @@ import { Box, Typography, Button, IconButton } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import { Bookmark } from "@mui/icons-material";
 import { styled } from "@mui/system";
 import TrailerDialog from "./TrailerDialog";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useWatchlist } from "../hooks/useWatchlist";
+import { useNotify } from "../components/NotificationsContext";
 
-interface Movie {
+export interface BannerMedia {
   id: number;
-  title: string;
+  title: string; // use name → title mapping upstream for shows
   overview: string;
   backdrop_path: string;
+  poster_path?: string;
+  vote_average?: number;
 }
 
 interface HeroBannerProps {
-  movie: Movie;
-  onMoreInfo: (movie: Movie) => void;
-  onToggleWatchlist: (movie: Movie) => void;
+  media: BannerMedia;
+  resourceType: "movie" | "tv";
+  onInfo: (m: BannerMedia) => void;
+  onToggleWatchlist: (movie: BannerMedia) => void;
 }
 
 const BannerRoot = styled(Box)({
@@ -49,19 +55,30 @@ const Content = styled(Box)({
 });
 
 const HeroBanner: React.FC<HeroBannerProps> = ({
-  movie,
-  onMoreInfo,
+  media,
+  resourceType,
+  onInfo,
   onToggleWatchlist,
 }) => {
+  const navigate = useNavigate();
+  const notify = useNotify();
+  const { inWatchlist, toggle } = useWatchlist(
+    media.id,
+    media.title,
+    resourceType === "movie" ? "movie" : "tv"
+  );
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const backdropUrl = `https://image.tmdb.org/t/p/original${movie.backdrop_path}`;
+  const backdropUrl =
+    `https://image.tmdb.org/t/p/original${media.backdrop_path}`
+      ? `https://image.tmdb.org/t/p/original${media.backdrop_path}`
+      : "/default-movie-poster.png";
 
   const handlePlay = async () => {
     try {
       const { data } = await axios.get<{ results: any[] }>(
-        `/api/movies/${movie.id}/videos`
+        `/api/${resourceType}/${media.id}/videos`
       );
       const trailer = data.results.find(
         (v) => v.type === "Trailer" && v.site === "YouTube"
@@ -70,26 +87,40 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
         setTrailerKey(trailer.key);
         setDialogOpen(true);
       } else {
-        alert("Trailer not available");
+        notify({ message: "No trailer available", severity: "info" });
       }
     } catch {
-      alert("Could not load trailer");
+      notify({ message: "Could not load trailer", severity: "error" });
     }
+  };
+
+  const handleWatchToggle = async () => {
+    const res = await toggle();
+    if (!res.success) {
+      notify({ message: "Could not update watchlist", severity: "error" });
+    } else {
+      notify({
+        message: res.added ? "Added to watchlist" : "Removed from watchlist",
+        severity: res.added ? "success" : "info",
+      });
+    }
+    onToggleWatchlist(media);
   };
 
   return (
     <>
-      <BannerRoot style={{ backgroundImage: `url(${backdropUrl})` }}>
+      <BannerRoot sx={{ backgroundImage: `url(${backdropUrl})` }}>
         <FadeOverlay />
         <Content>
           <Typography variant="h3" gutterBottom>
-            {movie.title}
+            {media.title}
           </Typography>
           <Typography variant="body1" paragraph>
-            {movie.overview.length > 200
-              ? movie.overview.slice(0, 200) + "…"
-              : movie.overview}
+            {media.overview.length > 200
+              ? media.overview.slice(0, 200) + "…"
+              : media.overview}
           </Typography>
+
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             <Button
               variant="contained"
@@ -98,24 +129,22 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
             >
               Play
             </Button>
-            <Link to={`/movie/${movie.id}`} style={{ textDecoration: "none" }}>
-              <Button
-                variant="outlined"
-                startIcon={<InfoOutlinedIcon />}
-                onClick={() => onMoreInfo(movie)}
-              >
-                More Info
-              </Button>
-            </Link>
-            <IconButton
-              sx={{ color: "#fff" }}
-              onClick={() => onToggleWatchlist(movie)}
+
+            <Button
+              variant="outlined"
+              startIcon={<InfoOutlinedIcon />}
+              onClick={() => navigate(`/${resourceType}/${media.id}`)}
             >
-              <BookmarkBorderIcon />
+              More Info
+            </Button>
+
+            <IconButton sx={{ color: "#fff" }} onClick={handleWatchToggle}>
+              {inWatchlist ? <Bookmark /> : <BookmarkBorderIcon />}
             </IconButton>
           </Box>
         </Content>
       </BannerRoot>
+
       <TrailerDialog
         open={dialogOpen}
         videoKey={trailerKey}

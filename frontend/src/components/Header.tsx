@@ -19,7 +19,6 @@ import {
 import {
   Menu as MenuIcon,
   Search as SearchIcon,
-  AccountCircle as AccountCircleIcon,
   BookmarkBorder as BookmarkIcon,
   Movie as MovieIcon,
   Tv as TvIcon,
@@ -30,6 +29,7 @@ import {
 import { styled, alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
 import UserMenu from "./UserMenu";
+import SearchBar from "./SearchBar";
 
 const navItems = [
   { label: "Movies", icon: <MovieIcon />, path: "/movies" },
@@ -95,31 +95,7 @@ const Header: React.FC = () => {
           {/* spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* search toggle */}
-          {searchOpen ? (
-            <SearchWrapper>
-              <SearchIcon
-                sx={{
-                  position: "absolute",
-                  left: 8,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                }}
-              />
-              <StyledInput
-                placeholder="Search…"
-                autoFocus
-                onBlur={() => setSearchOpen(false)}
-              />
-            </SearchWrapper>
-          ) : (
-            <IconButton
-              onClick={() => setSearchOpen(true)}
-              sx={{ color: "#fff" }}
-            >
-              <SearchIcon />
-            </IconButton>
-          )}
+          <SearchBar />
 
           <UserMenu />
 

@@ -51,9 +51,15 @@ const MainPage: React.FC = () => {
       {featured && (
         <section className="banner-section">
           <HeroBanner
-            movie={featured}
-            onMoreInfo={(m) => console.log("Info", m.id)}
-            onToggleWatchlist={(m) => console.log("WL", m.id)}
+            media={{
+              id: featured.id,
+              title: featured.title,
+              overview: featured.overview,
+              backdrop_path: featured.backdrop_path,
+            }}
+            resourceType="movie"
+            onInfo={(m) => console.log("Movies More Info", m.id)}
+            onToggleWatchlist={(m) => console.log("Movies WL", m.id)}
           />
         </section>
       )}

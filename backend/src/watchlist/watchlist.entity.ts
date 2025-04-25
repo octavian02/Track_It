@@ -1,3 +1,4 @@
+// src/watchlist/watchlist.entity.ts
 import {
   Entity,
   Column,
@@ -7,8 +8,10 @@ import {
 } from 'typeorm';
 import { User } from '../user/user.entity';
 
+export type MediaType = 'movie' | 'tv';
+
 @Entity()
-@Unique(['user', 'movieId'])
+@Unique(['user', 'mediaId'])
 export class WatchlistItem {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,10 +20,15 @@ export class WatchlistItem {
   user: User;
 
   @Column()
-  movieId: number;
+  @Column({ nullable: true })
+  mediaId: number;
 
   @Column()
-  movieTitle: string;
+  @Column({ nullable: true })
+  mediaName: string;
+
+  @Column({ type: 'enum', enum: ['movie', 'tv'], default: 'movie' })
+  mediaType: MediaType;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   addedAt: Date;

@@ -1,4 +1,4 @@
-// src/pages/MovieDetails.tsx
+// src/pages/ShowDetails.tsx
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
@@ -16,9 +16,10 @@ import {
   Favorite as FavoriteIcon,
   PlayArrow as PlayArrowIcon,
 } from "@mui/icons-material";
-import "./MovieDetails.css";
-import TrailerDialog from "../components/TrailerDialog";
 import { useNotify } from "../components/NotificationsContext";
+import { useWatchlist } from "../hooks/useWatchlist";
+import TrailerDialog from "../components/TrailerDialog";
+import "./MovieDetails.css";
 
 interface Genre {
   id: number;
@@ -35,116 +36,130 @@ interface CrewMember {
   name: string;
   job: string;
 }
-interface MovieDetail {
+interface ShowDetail {
   id: number;
-  title: string;
+  name: string;
   overview: string;
   backdrop_path: string;
   poster_path: string;
   vote_average: number;
-  release_date: string;
-  runtime: number;
+  first_air_date: string;
+  episode_run_time: number[];
+  number_of_seasons: number;
+  number_of_episodes: number;
   genres: Genre[];
   original_language: string;
 }
 
-const MovieDetails: React.FC = () => {
+const ShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [movie, setMovie] = useState<MovieDetail | null>(null);
+  const notify = useNotify();
+
+  const [show, setShow] = useState<ShowDetail | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [allCast, setAllCast] = useState<CastMember[]>([]);
-  const [director, setDirector] = useState<CrewMember[]>([]);
-  const [writers, setWriters] = useState<CrewMember[]>([]);
-  const [userRating, setUserRating] = useState<number | null>(0);
-  // const [isFavorite, setIsFavorite] = useState(false);
+  const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [userRating, setUserRating] = useState<number>(0);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
-  const [inWatchlist, setInWatchlist] = useState(false);
-  const notify = useNotify();
+  const [directors, setDirectors] = useState<CrewMember[]>([]);
+  const [producers, setProducers] = useState<CrewMember[]>([]);
+  const [showrunners, setShowrunners] = useState<CrewMember[]>([]);
+  const [writers, setWriters] = useState<CrewMember[]>([]);
+
+  const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
+    Number(id),
+    show?.name,
+    "tv"
+  );
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
-        const [movieRes, creditsRes, videosRes, wtchRes, ratingRes] =
+        const [showRes, creditsRes, videosRes, watchRes, ratingRes] =
           await Promise.all([
-            axios.get<MovieDetail>(`/api/movies/${id}`),
+            axios.get<ShowDetail>(`/api/shows/${id}`),
             axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
-              `/api/movies/${id}/credits`
+              `/api/shows/${id}/aggregate_credits`
             ),
-            axios.get<{ results: any[] }>(`/api/movies/${id}/videos`),
+            axios.get<{ results: any[] }>(`/api/shows/${id}/videos`),
             axios.get<{ mediaId: number }[]>(`/api/watchlist`),
             axios.get<{ score: number }>(`/api/ratings/${id}`),
           ]);
-        const m = movieRes.data;
-        setMovie(m);
 
-        const full = creditsRes.data.cast;
-        setAllCast(full);
-        setCast(full.slice(0, 8));
-        setDirector(creditsRes.data.crew.filter((c) => c.job === "Director"));
+        setShow(showRes.data);
+
+        const fullCast = creditsRes.data.cast;
+        setAllCast(fullCast);
+        setCast(fullCast.slice(0, 8));
+
+        const fullCrew = creditsRes.data.crew;
+
+        setCrew(fullCrew);
+
+        setDirectors(fullCrew.filter((c) => c.job === "Director"));
+        setProducers(fullCrew.filter((c) => c.job === "Producer"));
+        setShowrunners(
+          fullCrew.filter(
+            (c) => c.job === "Executive Producer" || c.job === "Creator"
+          )
+        );
         setWriters(
-          creditsRes.data.crew.filter((c) =>
+          fullCrew.filter((c) =>
             ["Writer", "Screenplay", "Story"].includes(c.job)
           )
         );
 
         const trailer = videosRes.data.results.find(
-          (v) => v.type === "Trailer" && v.site === "YouTube"
+          (v) => v.site === "YouTube" && v.type === "Trailer"
         );
-        setTrailerKey(trailer?.key || null);
-        setInWatchlist(wtchRes.data.some((item) => item.mediaId === +id));
+        setTrailerKey(trailer?.key ?? null);
+
         setUserRating(ratingRes.data?.score ?? 0);
+        // inWatchlist is handled by hook
       } catch (e) {
-        console.error("Error loading movie details", e);
+        console.error("Error loading show details", e);
       }
     })();
   }, [id]);
 
-  const toggleWatchlist = async () => {
-    if (!movie) return;
-    try {
-      if (inWatchlist) {
-        await axios.delete(`/api/watchlist/${id}`);
-        setInWatchlist(false);
-        notify({ message: "Removed from watchlist", severity: "info" });
-      } else {
-        await axios.post(`/api/watchlist/${id}`, {
-          movieTitle: movie.title,
-        });
-        setInWatchlist(true);
-        notify({ message: "Added to watchlist", severity: "success" });
-      }
-    } catch {
+  const handleWatchToggle = async () => {
+    const res = await toggleWatchlist();
+    if (!res.success) {
       notify({ message: "Could not update watchlist", severity: "error" });
+    } else {
+      notify({
+        message: res.added ? "Added to watchlist" : "Removed from watchlist",
+        severity: res.added ? "success" : "info",
+      });
     }
   };
 
-  const onRatingChange = async (_: any, newVal: number | null) => {
+  const handleRatingChange = async (_: any, newVal: number | null) => {
     if (newVal == null) return;
-    if (!movie) return;
+    if (!show) return;
     try {
       await axios.post(`/api/ratings/${id}`, {
-        mediaName: movie.title,
+        mediaName: show.name,
         mediaType: "movie",
         score: newVal,
       });
       setUserRating(newVal);
-      notify({
-        message: `Rated ${newVal.toFixed(1)}`,
-        severity: "success",
-      });
+      notify({ message: `Rated ${newVal.toFixed(1)}`, severity: "success" });
     } catch {
       notify({ message: "Could not save rating", severity: "error" });
     }
   };
 
-  if (!movie)
-    return <div className="loading-screen">Loading movie details…</div>;
+  if (!show) {
+    return <div className="loading-screen">Loading show details…</div>;
+  }
 
-  const backdropUrl = `https://image.tmdb.org/t/p/original${movie.backdrop_path}`;
-  const year = new Date(movie.release_date).getFullYear();
+  const backdropUrl = `https://image.tmdb.org/t/p/original${show.backdrop_path}`;
+  const year = new Date(show.first_air_date).getFullYear();
+  const runtime = show.episode_run_time[0] ?? 0;
 
   return (
     <div className="detail-page">
@@ -156,35 +171,33 @@ const MovieDetails: React.FC = () => {
         <Box className="detail-banner-overlay" />
         <Box className="detail-info container">
           <Typography variant="h3" gutterBottom>
-            {movie.title}
+            {show.name}
           </Typography>
-          <Typography variant="subtitle1" className="sub" gutterBottom>
-            {year} • {movie.runtime}m •{" "}
-            {movie.genres.map((g) => g.name).join(", ")}
+          <Typography variant="subtitle1" gutterBottom className="sub">
+            {year} • {show.number_of_seasons} seasons • {runtime} min avg ep
           </Typography>
-          <Box className="detail-extra" sx={{ mt: 2 }}>
+          <Box sx={{ mt: 2 }} className="detail-extra">
             <Typography variant="subtitle1">
-              <strong>Director:</strong>{" "}
-              {director.map((d) => d.name).join(", ") || "N/A"}
+              <strong>Genres:</strong>{" "}
+              {show.genres.map((g) => g.name).join(", ")}
             </Typography>
             <Typography variant="subtitle1">
-              <strong>Writers:</strong>{" "}
-              {writers.map((w) => w.name).join(", ") || "N/A"}
+              <strong>Episodes:</strong> {show.number_of_episodes}
             </Typography>
           </Box>
-          <Typography variant="subtitle2" className="language" gutterBottom>
-            Language: {movie.original_language.toUpperCase()}
+          <Typography variant="subtitle2" gutterBottom className="language">
+            Language: {show.original_language.toUpperCase()}
           </Typography>
 
-          {/* Stats Row */}
+          {/* Stats & Actions */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 3, mt: 1 }}>
             <Tooltip title="TMDB Score">
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="h5" sx={{ color: "#f5c518" }}>
-                  {movie.vote_average.toFixed(1)}
+                  {show.vote_average.toFixed(1)}
                 </Typography>
                 <Rating
-                  value={movie.vote_average / 2}
+                  value={show.vote_average / 2}
                   readOnly
                   precision={0.1}
                   size="large"
@@ -199,7 +212,7 @@ const MovieDetails: React.FC = () => {
             <Tooltip title="Your Rating">
               <Rating
                 value={userRating}
-                onChange={onRatingChange}
+                onChange={handleRatingChange}
                 precision={0.5}
                 size="large"
                 max={10}
@@ -215,13 +228,12 @@ const MovieDetails: React.FC = () => {
               startIcon={
                 inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
               }
-              onClick={toggleWatchlist}
+              onClick={handleWatchToggle}
             >
               {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
             </Button>
           </Box>
 
-          {/* Action Buttons */}
           <Box
             sx={{
               display: "flex",
@@ -251,21 +263,21 @@ const MovieDetails: React.FC = () => {
           }}
         >
           <Typography variant="h5">Top Cast</Typography>
-          <Link to={`/movie/${id}/credits`} style={{ textDecoration: "none" }}>
+          <Link to={`/tv/${id}/credits`} style={{ textDecoration: "none" }}>
             <Button variant="text" onClick={() => setCastDialog(true)}>
               See All
             </Button>
           </Link>
         </Box>
         <Box className="cast-grid">
-          {cast.map((member) => (
-            <Box key={member.id} className="cast-card">
+          {cast.map((m) => (
+            <Box key={m.id} className="cast-card">
               <img
-                src={`https://image.tmdb.org/t/p/w185${member.profile_path}`}
-                alt={member.name}
+                src={`https://image.tmdb.org/t/p/w185${m.profile_path}`}
+                alt={m.name}
               />
-              <Typography variant="subtitle2">{member.name}</Typography>
-              <Typography variant="caption">as {member.character}</Typography>
+              <Typography variant="subtitle2">{m.name}</Typography>
+              <Typography variant="caption">as {m.character}</Typography>
             </Box>
           ))}
         </Box>
@@ -290,14 +302,14 @@ const MovieDetails: React.FC = () => {
             Full Cast
           </Typography>
           <Box className="cast-grid-full">
-            {allCast.map((member) => (
-              <Box key={member.id} className="cast-card-full">
+            {allCast.map((m) => (
+              <Box key={m.id} className="cast-card-full">
                 <img
-                  src={`https://image.tmdb.org/t/p/w185${member.profile_path}`}
-                  alt={member.name}
+                  src={`https://image.tmdb.org/t/p/w185${m.profile_path}`}
+                  alt={m.name}
                 />
-                <Typography variant="subtitle2">{member.name}</Typography>
-                <Typography variant="caption">as {member.character}</Typography>
+                <Typography variant="subtitle2">{m.name}</Typography>
+                <Typography variant="caption">as {m.character}</Typography>
               </Box>
             ))}
           </Box>
@@ -307,4 +319,4 @@ const MovieDetails: React.FC = () => {
   );
 };
 
-export default MovieDetails;
+export default ShowDetails;

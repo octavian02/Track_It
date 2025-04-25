@@ -1,3 +1,4 @@
+// src/ratings/ratings.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RatingsService } from './ratings.service';

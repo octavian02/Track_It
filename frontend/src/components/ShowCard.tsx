@@ -1,42 +1,37 @@
-// src/components/MovieCard.tsx
+// src/components/ShowCard.tsx
 import React, { useState } from "react";
 import axios from "axios";
 import { FaStar } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import "./MovieCard.css";
+import "./MovieCard.css"; // re-use your existing styles
 import TrailerDialog from "./TrailerDialog";
 import ImageWithFallback from "./ImageWithFallback";
-import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { useNotify } from "../components/NotificationsContext";
 
-interface Movie {
+interface Show {
   id: number;
-  title: string;
+  name: string;
   poster_path: string;
   vote_average: number;
 }
 
-interface MovieCardProps {
-  movie: Movie;
+interface ShowCardProps {
+  show: Show;
 }
 
-const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
+const ShowCard: React.FC<ShowCardProps> = ({ show }) => {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const StarIcon = FaStar as React.FC<React.SVGProps<SVGSVGElement>>;
   const notify = useNotify();
-  const { inWatchlist, toggle } = useWatchlist(movie.id, movie.title, "movie");
+  const { inWatchlist, toggle } = useWatchlist(show.id, show.name, "tv");
 
   const handleTrailer = async () => {
-    if (!movie.id) {
-      alert("No movie ID available.");
-      return;
-    }
     try {
       const { data } = await axios.get<{ results: any[] }>(
-        `/api/movies/${movie.id}/videos`
+        `/api/shows/${show.id}/videos`
       );
-      console.log(data);
       const trailer = data.results.find(
         (v) => v.type === "Trailer" && v.site === "YouTube"
       );
@@ -44,11 +39,11 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
         setTrailerKey(trailer.key);
         setDialogOpen(true);
       } else {
-        alert("No trailer found for this movie.");
+        notify({ message: "No trailer available", severity: "info" });
       }
-    } catch (err: any) {
-      console.error("Trailer request failed:", err.response || err);
-      alert("Could not load trailer.");
+    } catch (err) {
+      console.error("Trailer request failed:", err);
+      notify({ message: "Could not load trailer", severity: "error" });
     }
   };
 
@@ -67,30 +62,28 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   return (
     <>
       <div className="movie-card">
-        <Link to={`/movie/${movie.id}`} style={{ textDecoration: "none" }}>
+        <Link to={`/tv/${show.id}`} style={{ textDecoration: "none" }}>
           <ImageWithFallback
             className="movie-poster"
             src={
-              movie.poster_path
-                ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
+              show.poster_path
+                ? `https://image.tmdb.org/t/p/w300${show.poster_path}`
                 : "/default-movie-poster.png"
             }
             fallbackSrc="/default-movie-poster.png"
-            alt={`${movie.title} Poster`}
+            alt={`${show.name} Poster`}
           />
         </Link>
         <div className="movie-details">
-          <h3 className="movie-title">{movie.title}</h3>
+          <h3 className="movie-title">{show.name}</h3>
           <div className="movie-rating">
             <StarIcon className="star-icon" />
-            <span>{movie.vote_average.toFixed(1)}</span>
+            <span>{show.vote_average.toFixed(1)}</span>
           </div>
           <div className="movie-actions">
-            <div className="movie-actions">
-              <button className="watchlist-button" onClick={handleWatchToggle}>
-                {inWatchlist ? <>In Watchlist</> : "+ Watchlist"}
-              </button>
-            </div>
+            <button className="watchlist-button" onClick={handleWatchToggle}>
+              {inWatchlist ? <>In Watchlist</> : "+ Watchlist"}
+            </button>
             <button className="trailer-button" onClick={handleTrailer}>
               Trailer
             </button>
@@ -106,4 +99,4 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
   );
 };
 
-export default MovieCard;
+export default ShowCard;

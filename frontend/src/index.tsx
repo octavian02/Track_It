@@ -21,6 +21,9 @@ import HelpPage from "./pages/HelpPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import { AuthProvider } from "./contexts/AuthContext";
+import ShowDetails from "./pages/ShowDetails";
+import TvShowsPage from "./pages/TvShowPage";
+import ShowCredits from "./pages/ShowCredits";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -47,6 +50,9 @@ const router = createBrowserRouter(
         <Route path="/help" element={<HelpPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/tv" element={<TvShowsPage />} />
+        <Route path="/tv/:id" element={<ShowDetails />} />
+        <Route path="/tv/:id/credits" element={<ShowCredits />} />
       </Route>
     </>
   )

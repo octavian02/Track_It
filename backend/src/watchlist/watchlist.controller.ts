@@ -1,3 +1,4 @@
+// src/watchlist/watchlist.controller.ts
 import {
   Controller,
   Post,
@@ -10,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { WatchlistService } from './watchlist.service';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
+import { MediaType } from './watchlist.entity';
 
 @Controller('watchlist')
 @UseGuards(JwtAuthGuard)
@@ -21,17 +23,18 @@ export class WatchlistController {
     return this.svc.getWatchlist(req.user);
   }
 
-  @Post(':movieId')
+  @Post(':mediaId')
   add(
     @Request() req,
-    @Param('movieId') movieId: string,
-    @Body('movieTitle') movieTitle: string,
+    @Param('mediaId') mediaId: string,
+    @Body('mediaName') mediaName: string,
+    @Body('mediaType') mediaType: MediaType,
   ) {
-    return this.svc.addToWatchlist(req.user, +movieId, movieTitle);
+    return this.svc.addToWatchlist(req.user, +mediaId, mediaName, mediaType);
   }
 
-  @Delete(':movieId')
-  remove(@Request() req, @Param('movieId') movieId: string) {
-    return this.svc.removeFromWatchlist(req.user, +movieId);
+  @Delete(':mediaId')
+  remove(@Request() req, @Param('mediaId') mediaId: string) {
+    return this.svc.removeFromWatchlist(req.user, +mediaId);
   }
 }

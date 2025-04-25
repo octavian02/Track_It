@@ -1,3 +1,4 @@
+// src/movies/movies.controller.ts
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 
