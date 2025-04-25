@@ -2,9 +2,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import ShowCarousel from "../components/ShowCarousel";
-import HeroBanner from "../components/HeroBanner";
 import { useNotify } from "../components/NotificationsContext";
 import "./MainPage.css"; // reuse your main page styles
+import HeroCarousel, { BannerMedia } from "../components/HeroCarousel";
 
 interface ShowFull {
   id: number;
@@ -67,36 +67,39 @@ const TvShowsPage: React.FC = () => {
     return <div className="loading-screen">Loading…</div>;
   }
 
+  const carouselItems: BannerMedia[] = [
+    ...trending.slice(0, 3).map(
+      (s): BannerMedia => ({
+        id: s.id,
+        title: s.name,
+        overview: s.overview,
+        backdrop_path: s.backdrop_path,
+        poster_path: s.poster_path,
+        vote_average: s.vote_average,
+        resourceType: "tv",
+      })
+    ),
+    ...popular.slice(0, 3).map(
+      (s): BannerMedia => ({
+        id: s.id,
+        title: s.name,
+        overview: s.overview,
+        backdrop_path: s.backdrop_path,
+        poster_path: s.poster_path,
+        vote_average: s.vote_average,
+        resourceType: "tv",
+      })
+    ),
+  ];
+
   return (
     <div className="main-page">
-      {featured && (
-        <section className="banner-section">
-          <HeroBanner
-            media={{
-              id: featured.id,
-              title: featured.name, // map `name` → `title`
-              overview: featured.overview,
-              backdrop_path: featured.backdrop_path,
-              poster_path: featured.poster_path,
-              vote_average: featured.vote_average,
-            }}
-            resourceType="tv"
-            onInfo={(m) => console.log("Shows More Info", m.id)}
-            onToggleWatchlist={(m) => console.log("Shows WL", m.id)}
-          />
-        </section>
-      )}
+      <HeroCarousel items={carouselItems} />
 
       <section className="section">
         <ShowCarousel title="Trending Now" shows={trending} />
-      </section>
-      <section className="section">
         <ShowCarousel title="Popular" shows={popular} />
-      </section>
-      <section className="section">
         <ShowCarousel title="Top Rated" shows={topRated} />
-      </section>
-      <section className="section">
         <ShowCarousel title="Airing Today" shows={airing} />
       </section>
     </div>

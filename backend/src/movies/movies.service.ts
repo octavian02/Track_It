@@ -55,4 +55,5 @@ export class MoviesService {
     const { data } = await axios.get(url);
     return data;
   }
+  c;
 }

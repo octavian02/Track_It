@@ -46,6 +46,12 @@ export class ShowsController {
     return await this.showsService.getVideos(+id);
   }
 
+  @Get(':id/avg-runtime')
+  async avgRuntime(@Param('id') id: string) {
+    const avg = await this.showsService.getAverageEpisodeRuntime(+id);
+    return { averageRuntime: avg };
+  }
+
   @Get()
   async search(@Query('q') q: string) {
     return await this.showsService.search(q);

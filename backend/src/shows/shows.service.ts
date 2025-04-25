@@ -107,4 +107,30 @@ export class ShowsService {
       this.handleError('search', err);
     }
   }
+  async getAverageEpisodeRuntime(tvId: number): Promise<number> {
+    // 1) Fetch show metadata to get seasons list
+    const { data: show } = await this.client.get(`/tv/${tvId}`);
+    let total = 0;
+    let count = 0;
+
+    // 2) For each season, fetch its details
+    for (const season of show.seasons || []) {
+      // skip specials if desired:
+      if (season.season_number === 0) continue;
+
+      const { data: seasonData } = await this.client.get(
+        `/tv/${tvId}/season/${season.season_number}`,
+      );
+      // 3) Sum up each episode’s runtime
+      for (const ep of seasonData.episodes || []) {
+        if (typeof ep.runtime === 'number') {
+          total += ep.runtime;
+          count += 1;
+        }
+      }
+    }
+
+    // 4) Return rounded average, or 0 if no data
+    return count > 0 ? Math.round(total / count) : 0;
+  }
 }

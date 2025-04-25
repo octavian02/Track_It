@@ -81,9 +81,11 @@ const ShowCard: React.FC<ShowCardProps> = ({ show }) => {
             <span>{show.vote_average.toFixed(1)}</span>
           </div>
           <div className="movie-actions">
-            <button className="watchlist-button" onClick={handleWatchToggle}>
-              {inWatchlist ? <>In Watchlist</> : "+ Watchlist"}
-            </button>
+            <div className="movie-actions">
+              <button className="watchlist-button" onClick={handleWatchToggle}>
+                {inWatchlist ? <>In Watchlist</> : "+ Watchlist"}
+              </button>
+            </div>
             <button className="trailer-button" onClick={handleTrailer}>
               Trailer
             </button>

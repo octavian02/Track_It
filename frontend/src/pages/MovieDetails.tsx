@@ -19,6 +19,7 @@ import {
 import "./MovieDetails.css";
 import TrailerDialog from "../components/TrailerDialog";
 import { useNotify } from "../components/NotificationsContext";
+import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
 
 interface Genre {
   id: number;
@@ -81,6 +82,7 @@ const MovieDetails: React.FC = () => {
         setMovie(m);
 
         const full = creditsRes.data.cast;
+
         setAllCast(full);
         setCast(full.slice(0, 8));
         setDirector(creditsRes.data.crew.filter((c) => c.job === "Director"));
@@ -221,7 +223,6 @@ const MovieDetails: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Action Buttons */}
           <Box
             sx={{
               display: "flex",
@@ -261,7 +262,11 @@ const MovieDetails: React.FC = () => {
           {cast.map((member) => (
             <Box key={member.id} className="cast-card">
               <img
-                src={`https://image.tmdb.org/t/p/w185${member.profile_path}`}
+                src={
+                  member.profile_path
+                    ? `https://image.tmdb.org/t/p/w185${member.profile_path}`
+                    : PortraitPlaceholder
+                }
                 alt={member.name}
               />
               <Typography variant="subtitle2">{member.name}</Typography>
@@ -290,14 +295,28 @@ const MovieDetails: React.FC = () => {
             Full Cast
           </Typography>
           <Box className="cast-grid-full">
-            {allCast.map((member) => (
-              <Box key={member.id} className="cast-card-full">
+            {cast.map((member) => (
+              <Box key={member.id} className="cast-card">
                 <img
                   src={`https://image.tmdb.org/t/p/w185${member.profile_path}`}
                   alt={member.name}
                 />
                 <Typography variant="subtitle2">{member.name}</Typography>
-                <Typography variant="caption">as {member.character}</Typography>
+
+                <Tooltip title={member.character}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    as {member.character}
+                  </Typography>
+                </Tooltip>
               </Box>
             ))}
           </Box>

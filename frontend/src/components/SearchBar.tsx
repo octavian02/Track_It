@@ -1,5 +1,5 @@
-// frontend/src/components/SearchBar.tsx
-import React, { useState, useEffect, useMemo } from "react";
+// src/components/SearchBar.tsx
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import {
@@ -11,9 +11,10 @@ import {
   ListItemText,
   Typography,
   CircularProgress,
-  Box,
   Chip,
+  Paper,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 
 interface RawTmdbResult {
@@ -27,47 +28,33 @@ interface RawTmdbResult {
   popularity: number;
 }
 
-interface SearchOption extends RawTmdbResult {
-  actors: string[];
-}
-
 export default function SearchBar() {
   const [query, setQuery] = useState("");
-  const [options, setOptions] = useState<SearchOption[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [value, setValue] = useState<RawTmdbResult | null>(null);
+  const [options, setOptions] = useState<RawTmdbResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const cache = useRef<Record<string, RawTmdbResult[]>>({});
   const navigate = useNavigate();
 
-  // Debounced TMDB multi-search + enrich with first 2 actors
+  // Debounced fetch + cache
   const fetchResults = useMemo(
     () =>
       debounce(async (q: string) => {
+        if (cache.current[q]) {
+          setOptions(cache.current[q]);
+          return;
+        }
         setLoading(true);
         try {
           const { data } = await axios.get<{ results: RawTmdbResult[] }>(
             "/api/search",
             { params: { q } }
           );
-
           const slice = data.results.slice(0, 5);
-          const enriched: SearchOption[] = await Promise.all(
-            slice.map(async (r) => {
-              const creditsUrl =
-                r.media_type === "movie"
-                  ? `/api/movies/${r.id}/credits`
-                  : `/api/shows/${r.id}/credits`;
-              const cred = await axios.get<{ cast: { name: string }[] }>(
-                creditsUrl
-              );
-              return {
-                ...r,
-                actors: cred.data.cast.slice(0, 2).map((c) => c.name),
-              } as SearchOption;
-            })
-          );
-
-          setOptions(enriched);
-        } catch (err) {
-          console.error("Search failed:", err);
+          cache.current[q] = slice;
+          setOptions(slice);
+        } catch {
           setOptions([]);
         } finally {
           setLoading(false);
@@ -84,64 +71,64 @@ export default function SearchBar() {
     }
   }, [query, fetchResults]);
 
+  const handleSelect = (opt: RawTmdbResult) => {
+    const path =
+      opt.media_type === "movie" ? `/movie/${opt.id}` : `/tv/${opt.id}`;
+    navigate(path);
+    // Clear everything
+    setInputValue("");
+    setOptions([]);
+    setValue(null);
+  };
+
   return (
-    <Autocomplete<SearchOption, false, false, true>
-      freeSolo
+    <Autocomplete<RawTmdbResult, false, false, false>
+      value={value}
+      inputValue={inputValue}
+      onChange={(_, val) => {
+        if (val) handleSelect(val);
+        else setValue(null);
+      }}
+      onInputChange={(_, v) => {
+        setInputValue(v);
+        setQuery(v);
+      }}
       openOnFocus
       loading={loading}
       options={options}
       noOptionsText="No results"
-      loadingText="Loading..."
-      getOptionLabel={(opt) =>
-        typeof opt === "string" ? opt : opt.title || opt.name || ""
-      }
+      getOptionLabel={(opt) => opt.title || opt.name || ""}
       filterOptions={(x) => x}
-      onInputChange={(_, v) => setQuery(v)}
-      onChange={(_, val) => {
-        if (val && typeof val !== "string") {
-          const path =
-            val.media_type === "movie" ? `/movie/${val.id}` : `/tv/${val.id}`;
-          navigate(path);
-        }
-      }}
-      componentsProps={{
-        paper: {
-          sx: {
-            bgcolor: "white",
-            color: "black",
-            boxShadow: 3,
-          },
-        },
-        popper: {
-          sx: {
-            bgcolor: "white",
-            color: "black",
-            boxShadow: 3,
-          },
-        },
-      }}
+      PaperComponent={(props) => (
+        <Paper
+          {...props}
+          sx={{ bgcolor: "#1e1e1e", color: "#fff", boxShadow: 3, mt: 1 }}
+        />
+      )}
+      popupIcon={null}
+      clearOnBlur={false}
       sx={{
-        width: 300,
-        // white input against dark header
+        width: 320,
         "& .MuiOutlinedInput-root": {
-          bgcolor: "white",
-          color: "black",
+          bgcolor: "#333",
+          color: "#fff",
+          "& fieldset": { borderColor: "#555" },
+          "&:hover fieldset": { borderColor: "#777" },
+          "&.Mui-focused fieldset": { borderColor: "#aaa" },
         },
-        // white dropdown items
-        "& .MuiAutocomplete-listbox": {
-          bgcolor: "white",
-          color: "black",
-        },
+        "& .MuiAutocomplete-input": { color: "#fff" },
       }}
       renderInput={(params) => (
         <TextField
           {...params}
           placeholder="Search movies & TV…"
+          variant="outlined"
           InputProps={{
             ...params.InputProps,
+            startAdornment: <SearchIcon sx={{ color: "#aaa", mr: 1 }} />,
             endAdornment: (
               <>
-                {loading && <CircularProgress size={16} />}
+                {loading && <CircularProgress size={16} color="inherit" />}
                 {params.InputProps.endAdornment}
               </>
             ),
@@ -150,11 +137,22 @@ export default function SearchBar() {
       )}
       renderOption={(props, opt) => {
         const year = (opt.release_date || opt.first_air_date || "").slice(0, 4);
+        const path =
+          opt.media_type === "movie" ? `/movie/${opt.id}` : `/tv/${opt.id}`;
         return (
           <ListItem
             {...props}
             key={`${opt.media_type}-${opt.id}`}
-            sx={{ alignItems: "center" }}
+            onAuxClick={(e) => {
+              if (e.button === 1) {
+                window.open(path, "_blank", "noopener");
+              }
+            }}
+            sx={{
+              bgcolor: "transparent",
+              color: "#fff",
+              "&:hover": { bgcolor: "#2a2a2a" },
+            }}
           >
             <ListItemAvatar>
               <Avatar
@@ -164,32 +162,29 @@ export default function SearchBar() {
                     ? `https://image.tmdb.org/t/p/w92${opt.poster_path}`
                     : "/default-movie-poster.png"
                 }
+                sx={{ width: 40, height: 60, mr: 1 }}
               />
             </ListItemAvatar>
             <ListItemText
               primary={
-                <Box display="flex" alignItems="center">
-                  <Typography variant="subtitle1">
-                    {opt.title || opt.name}
-                  </Typography>
+                <Typography variant="body1" color="inherit" noWrap>
+                  {opt.title || opt.name}{" "}
                   {year && (
                     <Typography
-                      variant="body2"
-                      sx={{ ml: 1 }}
-                      color="text.secondary"
+                      component="span"
+                      variant="caption"
+                      sx={{ color: "#aaa", ml: 0.5 }}
                     >
                       ({year})
                     </Typography>
                   )}
-                  <Chip
-                    label={opt.media_type.toUpperCase()}
-                    size="small"
-                    sx={{ ml: 1 }}
-                  />
-                </Box>
+                </Typography>
               }
-              secondary={opt.actors.join(", ")}
-              sx={{ ml: 1 }}
+            />
+            <Chip
+              label={opt.media_type.toUpperCase()}
+              size="small"
+              sx={{ bgcolor: "#555", color: "#fff", ml: 1 }}
             />
           </ListItem>
         );

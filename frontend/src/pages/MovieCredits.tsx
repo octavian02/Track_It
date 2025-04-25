@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+// src/pages/MovieCredits.tsx
+import React, { useState, useEffect, useMemo, SyntheticEvent } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -6,6 +7,8 @@ import {
   Box,
   Typography,
   Button,
+  Tabs,
+  Tab,
   Grid,
   Card,
   CardMedia,
@@ -26,6 +29,7 @@ interface CastMember {
   profile_path: string | null;
   character: string;
 }
+
 interface CrewMember {
   id: number;
   name: string;
@@ -34,11 +38,27 @@ interface CrewMember {
   department: string;
 }
 
-const getProfileUrl = (path: string | null) =>
-  path ? `https://image.tmdb.org/t/p/w185${path}` : PortraitPlaceholder;
+function getProfileUrl(path: string | null) {
+  return path ? `https://image.tmdb.org/t/p/w185${path}` : PortraitPlaceholder;
+}
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel({ children, value, index }: TabPanelProps) {
+  return (
+    <div role="tabpanel" hidden={value !== index}>
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
 
 export default function MovieCredits() {
   const { id } = useParams<{ id: string }>();
+  const [tab, setTab] = useState(0);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
 
@@ -53,61 +73,99 @@ export default function MovieCredits() {
         setCast(data.cast);
         setCrew(data.crew);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching credits:", err);
       }
     })();
   }, [id]);
 
   const crewByDept = useMemo(() => {
     return crew.reduce(
-      (acc, person) => {
-        const dept = person.department || "Other";
+      (acc, member) => {
+        const dept = member.department || "Other";
         if (!acc[dept]) acc[dept] = [];
-        acc[dept].push(person);
+        acc[dept].push(member);
         return acc;
       },
       {} as Record<string, CrewMember[]>
     );
   }, [crew]);
 
+  const handleTabChange = (_: SyntheticEvent, newValue: number) => {
+    setTab(newValue);
+  };
+
   return (
-    <Box className="credits-page">
+    <Box sx={{ bgcolor: "#121212", color: "#fff", py: 4 }}>
       <Container maxWidth="lg">
-        <Box className="credits-header">
+        {/* Header */}
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2, gap: 2 }}>
           <Button
             component={Link}
             to={`/movie/${id}`}
-            startIcon={<ArrowBackIcon />}
+            startIcon={<ArrowBackIcon htmlColor="#fff" />}
             size="small"
+            sx={{ color: "#fff", textTransform: "none" }}
           >
             Back to Details
           </Button>
           <Typography variant="h4">Cast &amp; Crew</Typography>
         </Box>
 
-        {/* Cast Section */}
-        <Box className="section">
-          <Typography variant="h5" className="section-title">
-            Cast
-          </Typography>
+        {/* Tabs */}
+        <Tabs
+          value={tab}
+          onChange={handleTabChange}
+          textColor="inherit"
+          indicatorColor="secondary"
+        >
+          <Tab label="Cast" />
+          <Tab label="Crew" />
+        </Tabs>
+
+        {/* Cast Panel */}
+        <TabPanel value={tab} index={0}>
           <Grid container spacing={2}>
             {cast.map((m) => (
-              <Grid item key={m.id} xs={6} sm={4} md={3} lg={2}>
-                <Card className="profile-card">
+              <Grid key={m.id} item xs={12} sm={6} md={4} lg={2}>
+                <Card
+                  sx={{
+                    bgcolor: "#1e1e1e",
+                    "&:hover": { boxShadow: 6 },
+                    borderRadius: 2,
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
                   <CardMedia
                     component="img"
                     image={getProfileUrl(m.profile_path)}
                     alt={m.name}
-                    className="profile-photo"
+                    sx={{ height: 260, objectFit: "cover" }}
                   />
-                  <CardContent className="profile-content">
+                  <CardContent sx={{ p: 1, flexGrow: 1 }}>
                     <Tooltip title={m.name}>
-                      <Typography variant="subtitle1" className="profile-name">
+                      <Typography
+                        variant="subtitle1"
+                        noWrap
+                        sx={{ color: "#fff" }}
+                      >
                         {m.name}
                       </Typography>
                     </Tooltip>
                     <Tooltip title={m.character}>
-                      <Typography variant="caption" className="profile-job">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#bbb",
+                          mt: 0.5,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         as {m.character}
                       </Typography>
                     </Tooltip>
@@ -116,61 +174,75 @@ export default function MovieCredits() {
               </Grid>
             ))}
           </Grid>
-        </Box>
+        </TabPanel>
 
-        {/* Crew Sections */}
-        {Object.entries(crewByDept).map(([dept, members]) => (
-          <Box key={dept} className="section">
-            <Accordion defaultExpanded={dept === "Directing"}>
-              <AccordionSummary
-                sx={{
-                  backgroundColor: "#222",
-                }}
-                expandIcon={<ExpandMoreIcon />}
+        {/* Crew Panel */}
+        <TabPanel value={tab} index={1}>
+          {Object.entries(crewByDept).map(([dept, members]) => (
+            <Box key={dept} sx={{ mb: 3 }}>
+              <Accordion
+                defaultExpanded={dept === "Directing"}
+                sx={{ bgcolor: "#1e1e1e" }}
               >
-                <Typography variant="h5">{dept}</Typography>
-              </AccordionSummary>
-              <AccordionDetails
-                sx={{
-                  backgroundColor: "#222",
-                }}
-              >
-                <Grid container spacing={2}>
-                  {members.map((p) => (
-                    <Grid item key={p.id} xs={6} sm={4} md={3} lg={2}>
-                      <Card className="profile-card">
-                        <CardMedia
-                          component="img"
-                          image={getProfileUrl(p.profile_path)}
-                          alt={p.name}
-                          className="profile-photo"
-                        />
-                        <CardContent className="profile-content">
-                          <Tooltip title={p.name}>
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon htmlColor="#fff" />}
+                  sx={{ bgcolor: "#1e1e1e" }}
+                >
+                  <Typography variant="h6" sx={{ color: "#fff" }}>
+                    {dept}
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails sx={{ bgcolor: "#1e1e1e", p: 2 }}>
+                  <Grid container spacing={2}>
+                    {members.map((p) => (
+                      <Grid key={p.id} item xs={12} sm={6} md={4} lg={2}>
+                        <Card
+                          sx={{
+                            bgcolor: "#2a2a2a",
+                            "&:hover": { boxShadow: 6 },
+                            borderRadius: 2,
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <CardMedia
+                            component="img"
+                            image={getProfileUrl(p.profile_path)}
+                            alt={p.name}
+                            sx={{ height: 260, objectFit: "cover" }}
+                          />
+                          <CardContent sx={{ p: 1 }}>
+                            <Tooltip title={p.name}>
+                              <Typography
+                                variant="subtitle1"
+                                noWrap
+                                sx={{ color: "#fff" }}
+                              >
+                                {p.name}
+                              </Typography>
+                            </Tooltip>
                             <Typography
-                              variant="subtitle1"
-                              className="profile-name"
-                            >
-                              {p.name}
-                            </Typography>
-                          </Tooltip>
-                          <Tooltip title={p.job}>
-                            <Typography
-                              variant="caption"
-                              className="profile-job"
+                              variant="body2"
+                              sx={{
+                                color: "#bbb",
+                                mt: 0.5,
+                                whiteSpace: "normal",
+                                wordBreak: "break-word",
+                              }}
                             >
                               {p.job}
                             </Typography>
-                          </Tooltip>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          </Box>
-        ))}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
+          ))}
+        </TabPanel>
       </Container>
     </Box>
   );

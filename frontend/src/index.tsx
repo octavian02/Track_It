@@ -24,6 +24,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ShowDetails from "./pages/ShowDetails";
 import TvShowsPage from "./pages/TvShowPage";
 import ShowCredits from "./pages/ShowCredits";
+import MoviePage from "./pages/MoviePage";
+import { WatchlistProvider } from "./contexts/WatchlistContext";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -44,6 +46,7 @@ const router = createBrowserRouter(
       {/* APP ROUTES (with header+footer) */}
       <Route element={<AppLayout />}>
         <Route path="/mainpage" element={<MainPage />} />
+        <Route path="/movies" element={<MoviePage />} />
         <Route path="/movie/:id" element={<MovieDetails />} />
         <Route path="/movie/:id/credits" element={<MovieCredits />} />
         <Route path="/about" element={<AboutPage />} />
@@ -60,10 +63,12 @@ const router = createBrowserRouter(
 
 root.render(
   <React.StrictMode>
-    <NotificationProvider>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </NotificationProvider>
+    <WatchlistProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </NotificationProvider>
+    </WatchlistProvider>
   </React.StrictMode>
 );

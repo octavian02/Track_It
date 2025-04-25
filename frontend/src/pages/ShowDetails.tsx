@@ -20,6 +20,7 @@ import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
 import TrailerDialog from "../components/TrailerDialog";
 import "./MovieDetails.css";
+import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
 
 interface Genre {
   id: number;
@@ -29,7 +30,7 @@ interface CastMember {
   id: number;
   name: string;
   profile_path: string;
-  character: string;
+  roles: { character: string; episode_count: number }[];
 }
 interface CrewMember {
   id: number;
@@ -54,7 +55,6 @@ interface ShowDetail {
 const ShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const notify = useNotify();
-
   const [show, setShow] = useState<ShowDetail | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [allCast, setAllCast] = useState<CastMember[]>([]);
@@ -67,10 +67,11 @@ const ShowDetails: React.FC = () => {
   const [producers, setProducers] = useState<CrewMember[]>([]);
   const [showrunners, setShowrunners] = useState<CrewMember[]>([]);
   const [writers, setWriters] = useState<CrewMember[]>([]);
+  const [avgRuntime, setAvgRuntime] = useState<number | null>(null);
 
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
     Number(id),
-    show?.name,
+    show?.name ?? "",
     "tv"
   );
 
@@ -78,16 +79,14 @@ const ShowDetails: React.FC = () => {
     if (!id) return;
     (async () => {
       try {
-        const [showRes, creditsRes, videosRes, watchRes, ratingRes] =
-          await Promise.all([
-            axios.get<ShowDetail>(`/api/shows/${id}`),
-            axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
-              `/api/shows/${id}/aggregate_credits`
-            ),
-            axios.get<{ results: any[] }>(`/api/shows/${id}/videos`),
-            axios.get<{ mediaId: number }[]>(`/api/watchlist`),
-            axios.get<{ score: number }>(`/api/ratings/${id}`),
-          ]);
+        const [showRes, creditsRes, videosRes, ratingRes] = await Promise.all([
+          axios.get<ShowDetail>(`/api/shows/${id}`),
+          axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
+            `/api/shows/${id}/aggregate_credits`
+          ),
+          axios.get<{ results: any[] }>(`/api/shows/${id}/videos`),
+          axios.get<{ score: number }>(`/api/ratings/${id}`),
+        ]);
 
         setShow(showRes.data);
 
@@ -96,9 +95,7 @@ const ShowDetails: React.FC = () => {
         setCast(fullCast.slice(0, 8));
 
         const fullCrew = creditsRes.data.crew;
-
         setCrew(fullCrew);
-
         setDirectors(fullCrew.filter((c) => c.job === "Director"));
         setProducers(fullCrew.filter((c) => c.job === "Producer"));
         setShowrunners(
@@ -118,9 +115,21 @@ const ShowDetails: React.FC = () => {
         setTrailerKey(trailer?.key ?? null);
 
         setUserRating(ratingRes.data?.score ?? 0);
-        // inWatchlist is handled by hook
       } catch (e) {
         console.error("Error loading show details", e);
+      }
+    })();
+  }, [id]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await axios.get<{ averageRuntime: number }>(
+          `/api/shows/${id}/avg-runtime`
+        );
+        setAvgRuntime(data.averageRuntime);
+      } catch {
+        setAvgRuntime(null);
       }
     })();
   }, [id]);
@@ -138,12 +147,11 @@ const ShowDetails: React.FC = () => {
   };
 
   const handleRatingChange = async (_: any, newVal: number | null) => {
-    if (newVal == null) return;
-    if (!show) return;
+    if (newVal == null || !show) return;
     try {
       await axios.post(`/api/ratings/${id}`, {
         mediaName: show.name,
-        mediaType: "movie",
+        mediaType: "tv",
         score: newVal,
       });
       setUserRating(newVal);
@@ -159,8 +167,6 @@ const ShowDetails: React.FC = () => {
 
   const backdropUrl = `https://image.tmdb.org/t/p/original${show.backdrop_path}`;
   const year = new Date(show.first_air_date).getFullYear();
-  const runtime = show.episode_run_time[0] ?? 0;
-
   return (
     <div className="detail-page">
       {/* Hero Banner */}
@@ -174,7 +180,8 @@ const ShowDetails: React.FC = () => {
             {show.name}
           </Typography>
           <Typography variant="subtitle1" gutterBottom className="sub">
-            {year} • {show.number_of_seasons} seasons • {runtime} min avg ep
+            {year} • {show.number_of_seasons} seasons •{" "}
+            {avgRuntime !== null && <> • {avgRuntime} min avg ep</>}
           </Typography>
           <Box sx={{ mt: 2 }} className="detail-extra">
             <Typography variant="subtitle1">
@@ -270,16 +277,48 @@ const ShowDetails: React.FC = () => {
           </Link>
         </Box>
         <Box className="cast-grid">
-          {cast.map((m) => (
-            <Box key={m.id} className="cast-card">
-              <img
-                src={`https://image.tmdb.org/t/p/w185${m.profile_path}`}
-                alt={m.name}
-              />
-              <Typography variant="subtitle2">{m.name}</Typography>
-              <Typography variant="caption">as {m.character}</Typography>
-            </Box>
-          ))}
+          {cast.map((m) => {
+            const totalEps = m.roles.reduce(
+              (sum, r) => sum + r.episode_count,
+              0
+            );
+            const chars = m.roles.map((r) => r.character).join(", ");
+            return (
+              <Box key={m.id} className="cast-card">
+                <img
+                  src={
+                    m.profile_path
+                      ? `https://image.tmdb.org/t/p/w185${m.profile_path}`
+                      : PortraitPlaceholder
+                  }
+                  alt={m.name}
+                />
+                <Typography variant="subtitle2" noWrap>
+                  {m.name}
+                </Typography>
+                <Tooltip title={chars}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "-webkit-box",
+                      WebkitLineClamp: 1,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    as {chars}
+                  </Typography>
+                </Tooltip>
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}
+                >
+                  {totalEps} {totalEps === 1 ? "episode" : "episodes"}
+                </Typography>
+              </Box>
+            );
+          })}
         </Box>
       </section>
 
@@ -302,16 +341,48 @@ const ShowDetails: React.FC = () => {
             Full Cast
           </Typography>
           <Box className="cast-grid-full">
-            {allCast.map((m) => (
-              <Box key={m.id} className="cast-card-full">
-                <img
-                  src={`https://image.tmdb.org/t/p/w185${m.profile_path}`}
-                  alt={m.name}
-                />
-                <Typography variant="subtitle2">{m.name}</Typography>
-                <Typography variant="caption">as {m.character}</Typography>
-              </Box>
-            ))}
+            {allCast.map((m) => {
+              const totalEps = m.roles.reduce(
+                (sum, r) => sum + r.episode_count,
+                0
+              );
+              const chars = m.roles.map((r) => r.character).join(", ");
+              return (
+                <Box key={m.id} className="cast-card-full">
+                  <img
+                    src={
+                      m.profile_path
+                        ? `https://image.tmdb.org/t/p/w185${m.profile_path}`
+                        : PortraitPlaceholder
+                    }
+                    alt={m.name}
+                  />
+                  <Typography variant="subtitle2" noWrap>
+                    {m.name}
+                  </Typography>
+                  <Tooltip title={chars}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      as {chars}
+                    </Typography>
+                  </Tooltip>
+                  <Typography
+                    variant="caption"
+                    sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}
+                  >
+                    {totalEps} {totalEps === 1 ? "episode" : "episodes"}
+                  </Typography>
+                </Box>
+              );
+            })}
           </Box>
         </DialogContent>
       </Dialog>
