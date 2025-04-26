@@ -1,7 +1,7 @@
 // src/components/UserMenu.tsx
 
 import React from "react";
-import { IconButton, Avatar, Menu, MenuItem } from "@mui/material";
+import { IconButton, Menu, MenuItem } from "@mui/material";
 import { useAuth } from "../contexts/AuthContext";
 import { Link as RouterLink } from "react-router-dom";
 import { AccountCircle as AccountCircleIcon } from "@mui/icons-material";
@@ -12,9 +12,10 @@ const UserMenu: React.FC = () => {
   const open = Boolean(anchorEl);
 
   if (!user) {
-    // You could render a Login button here instead
     return null;
   }
+
+  const handleClose = () => setAnchorEl(null);
 
   return (
     <>
@@ -28,14 +29,14 @@ const UserMenu: React.FC = () => {
       <Menu
         anchorEl={anchorEl}
         open={open}
-        onClose={() => setAnchorEl(null)}
+        onClose={handleClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
         <MenuItem
           component={RouterLink}
-          to="/profile"
-          onClick={() => setAnchorEl(null)}
+          to={`/user/me/profile`}
+          onClick={handleClose}
         >
           Profile
         </MenuItem>

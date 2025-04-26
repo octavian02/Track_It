@@ -30,9 +30,9 @@ import UserMenu from "./UserMenu";
 import SearchBar from "./SearchBar";
 
 const navItems = [
+  { label: "Tracking", icon: <PeopleIcon />, path: "/track" },
   { label: "Movies", icon: <MovieIcon />, path: "/movies" },
   { label: "TV Shows", icon: <TvIcon />, path: "/tv" },
-  { label: "Celebs", icon: <PeopleIcon />, path: "/celebs" },
   { label: "Awards", icon: <AwardsIcon />, path: "/awards" },
   { label: "Community", icon: <CommunityIcon />, path: "/community" },
 ];

@@ -15,7 +15,7 @@ import { UserModule } from 'src/user/user.module';
       signOptions: { expiresIn: '24h' },
     }),
   ],
-  providers: [AuthService, JwtStrategy], // ← AuthService must be exported from auth.service.ts
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
   exports: [AuthService, PassportModule, JwtModule],
 })

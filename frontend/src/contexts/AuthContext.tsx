@@ -31,7 +31,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         setUser({ id: decoded.sub, username: decoded.username });
       } catch {
-        // invalid token
         setUser(null);
       }
     }
