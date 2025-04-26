@@ -26,6 +26,9 @@ import TvShowsPage from "./pages/TvShowPage";
 import ShowCredits from "./pages/ShowCredits";
 import MoviePage from "./pages/MoviePage";
 import { WatchlistProvider } from "./contexts/WatchlistContext";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import SearchPage from "./pages/SearchPage";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -55,6 +58,7 @@ const router = createBrowserRouter(
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/tv" element={<TvShowsPage />} />
         <Route path="/tv/:id" element={<ShowDetails />} />
+        <Route path="/search" element={<SearchPage />} />
         <Route path="/tv/:id/credits" element={<ShowCredits />} />
       </Route>
     </>
@@ -66,7 +70,9 @@ root.render(
     <WatchlistProvider>
       <NotificationProvider>
         <AuthProvider>
-          <RouterProvider router={router} />
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <RouterProvider router={router} />
+          </LocalizationProvider>
         </AuthProvider>
       </NotificationProvider>
     </WatchlistProvider>

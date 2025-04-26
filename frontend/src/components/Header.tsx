@@ -12,7 +12,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  InputBase,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -24,9 +23,8 @@ import {
   People as PeopleIcon,
   EmojiEvents as AwardsIcon,
   Chat as CommunityIcon,
-  Search,
+  FilterList as FilterListIcon,
 } from "@mui/icons-material";
-import { styled, alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
 import UserMenu from "./UserMenu";
 import SearchBar from "./SearchBar";
@@ -53,13 +51,11 @@ const Header: React.FC = () => {
               <MenuIcon sx={{ color: "#fff" }} />
             </IconButton>
           )}
-
           <Typography variant="h6" sx={{ flexGrow: 1, color: "#fff" }}>
             <Link to="/mainpage" style={{ textDecoration: "none" }}>
               TrackIt
             </Link>
           </Typography>
-
           {!isMobile &&
             navItems.map((item) => (
               <Button
@@ -71,16 +67,18 @@ const Header: React.FC = () => {
                 {item.label}
               </Button>
             ))}
-
           {/* spacer */}
           <Box sx={{ flexGrow: 1 }} />
-
           <SearchBar />
-          <Search>
-            <Link to="/search"></Link>
-          </Search>
+          <IconButton
+            component={Link}
+            to="/search"
+            sx={{ color: "#fff", ml: 1 }}
+            title="Advanced filters"
+          >
+            <FilterListIcon />
+          </IconButton>
           <UserMenu />
-
           <IconButton sx={{ color: "#fff" }}>
             <BookmarkIcon />
           </IconButton>
@@ -104,6 +102,13 @@ const Header: React.FC = () => {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            {/* also include in mobile drawer */}
+            <ListItemButton component={Link} to="/search">
+              <ListItemIcon sx={{ color: "#000" }}>
+                <FilterListIcon />
+              </ListItemIcon>
+              <ListItemText primary="Advanced Search" />
+            </ListItemButton>
           </List>
         </Box>
       </Drawer>
