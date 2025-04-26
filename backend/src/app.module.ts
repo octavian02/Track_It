@@ -2,7 +2,8 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as redisStore from 'cache-manager-ioredis';
 import * as Joi from 'joi';
 import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
@@ -12,6 +13,7 @@ import { WatchlistModule } from './watchlist/watchlist.module';
 import { AuthModule } from 'auth/auth.module';
 import { ShowsModule } from './shows/shows.module';
 import { SearchModule } from './search/search.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -27,6 +29,16 @@ import { SearchModule } from './search/search.module';
         RUN_MIGRATIONS: Joi.boolean().required(),
         DBLOGGING: Joi.boolean(),
         DBSYNC: Joi.boolean(),
+      }),
+    }),
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        store: redisStore,
+        host: configService.get<string>('REDIS_HOST'),
+        port: configService.get<number>('REDIS_PORT'),
+        ttl: configService.get<number>('CACHE_TTL'), // seconds
       }),
     }),
     DatabaseModule,

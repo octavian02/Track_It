@@ -18,13 +18,13 @@ import {
 } from "@mui/material";
 import {
   Menu as MenuIcon,
-  Search as SearchIcon,
   BookmarkBorder as BookmarkIcon,
   Movie as MovieIcon,
   Tv as TvIcon,
   People as PeopleIcon,
   EmojiEvents as AwardsIcon,
   Chat as CommunityIcon,
+  Search,
 } from "@mui/icons-material";
 import { styled, alpha } from "@mui/material/styles";
 import { Link } from "react-router-dom";
@@ -39,30 +39,10 @@ const navItems = [
   { label: "Community", icon: <CommunityIcon />, path: "/community" },
 ];
 
-const SearchWrapper = styled("div")(({ theme }) => ({
-  position: "relative",
-  borderRadius: theme.shape.borderRadius,
-  backgroundColor: alpha(theme.palette.common.white, 0.15),
-  "&:hover": { backgroundColor: alpha(theme.palette.common.white, 0.25) },
-  marginLeft: theme.spacing(1),
-  width: "auto",
-}));
-
-const StyledInput = styled(InputBase)(({ theme }) => ({
-  color: "inherit",
-  "& .MuiInputBase-input": {
-    padding: theme.spacing(1),
-    transition: theme.transitions.create("width"),
-    width: 0,
-    "&:focus": { width: "12ch" },
-  },
-}));
-
 const Header: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [searchOpen, setSearchOpen] = React.useState(false);
 
   return (
     <>
@@ -96,7 +76,9 @@ const Header: React.FC = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           <SearchBar />
-
+          <Search>
+            <Link to="/search"></Link>
+          </Search>
           <UserMenu />
 
           <IconButton sx={{ color: "#fff" }}>

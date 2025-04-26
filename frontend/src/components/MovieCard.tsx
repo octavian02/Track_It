@@ -8,6 +8,7 @@ import TrailerDialog from "./TrailerDialog";
 import ImageWithFallback from "./ImageWithFallback";
 import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { motion } from "framer-motion";
 
 interface Movie {
   id: number;
@@ -66,7 +67,13 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
 
   return (
     <>
-      <div className="movie-card">
+      <motion.div
+        className="movie-card"
+        whileHover={{ scale: 1.03 }}
+        transition={{ type: "spring", stiffness: 300 }}
+        style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.3)" }}
+        whileTap={{ scale: 0.98 }}
+      >
         <Link to={`/movie/${movie.id}`} style={{ textDecoration: "none" }}>
           <ImageWithFallback
             className="movie-poster"
@@ -96,7 +103,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
       <TrailerDialog
         open={dialogOpen}
         videoKey={trailerKey}
