@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-import HeroBanner from "../components/HeroBanner";
 import MovieCarousel from "../components/MovieCarousel";
 import ShowCarousel from "../components/ShowCarousel";
 import HeroCarousel, { BannerMedia } from "../components/HeroCarousel";

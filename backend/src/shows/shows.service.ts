@@ -107,6 +107,7 @@ export class ShowsService {
       this.handleError('search', err);
     }
   }
+
   async getAverageEpisodeRuntime(tvId: number): Promise<number> {
     // 1) Fetch show metadata to get seasons list
     const { data: show } = await this.client.get(`/tv/${tvId}`);

@@ -1,8 +1,6 @@
 // src/pages/MoviesPage.tsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-
-import HeroBanner from "../components/HeroBanner";
 import MovieCarousel from "../components/MovieCarousel";
 import HeroCarousel, { BannerMedia } from "../components/HeroCarousel";
 
