@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as redisStore from 'cache-manager-ioredis';
 import * as Joi from 'joi';
 import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
@@ -13,6 +12,7 @@ import { WatchlistModule } from './watchlist/watchlist.module';
 import { AuthModule } from 'auth/auth.module';
 import { ShowsModule } from './shows/shows.module';
 import { SearchModule } from './search/search.module';
+import { redisStore } from 'cache-manager-redis-store';
 import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
