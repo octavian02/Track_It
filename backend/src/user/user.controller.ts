@@ -12,6 +12,12 @@ import {
   UseGuards,
   HttpException,
   HttpStatus,
+  Req,
+  UploadedFile,
+  UseInterceptors,
+  Header,
+  NotFoundException,
+  Res,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
 import { UserService } from './user.service';
@@ -19,6 +25,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { User } from './user.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -44,7 +52,6 @@ export class UserController {
   @Get('me/profile')
   @UseGuards(JwtAuthGuard)
   getOwnProfile(@Request() req) {
-    console.log('🛡 getOwnProfile called, req.user →', req.user);
     return this.userService.getProfile(req.user.id, req.user.id);
   }
 
@@ -52,17 +59,30 @@ export class UserController {
   @Get(':username/profile')
   @UseGuards(JwtAuthGuard)
   async getByUsername(@Request() req, @Param('username') username: string) {
-    console.log('🛡 getByUsername called, params.username →', username);
     const target = await this.userService.findByUsername(username);
-    console.log('   found target.id →', target.id);
     return this.userService.getProfile(req.user.id, target.id);
   }
-
+  @Get(':id/avatar')
+  @UseGuards(JwtAuthGuard)
+  @Header('Content-Type', 'image/png')
+  async serveAvatar(
+    @Param('id') id: string,
+    @Res() res: Response, // ← now this is the Express Response
+  ) {
+    const buf = await this.userService.getAvatarBuffer(+id);
+    if (!buf) throw new NotFoundException('No avatar');
+    return res.send(buf);
+  }
   // ─── Protected: Update own profile ────────────────────────────────────────
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('avatar'))
   @Patch('me/profile')
-  updateOwnProfile(@Request() req, @Body() dto: UpdateUserDto) {
-    return this.userService.updateProfile(req.user.id, dto);
+  async updateOwnProfile(
+    @Req() req,
+    @UploadedFile() file: any,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.userService.updateProfile(req.user.id, dto, file?.buffer);
   }
 
   // ─── Follow / Unfollow ────────────────────────────────────────────────────

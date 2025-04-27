@@ -44,9 +44,21 @@ export class UserService {
     return null;
   }
 
-  async updateProfile(userId: number, dto: UpdateUserDto) {
-    await this.usersRepo.update(userId, dto);
-    return this.usersRepo.findOneOrFail({ where: { id: userId } });
+  async updateProfile(
+    userId: number,
+    dto: UpdateUserDto,
+    avatarBuffer?: Buffer,
+  ): Promise<User> {
+    const user = await this.usersRepo.findOneByOrFail({ id: userId });
+
+    if (dto.displayName !== undefined) user.displayName = dto.displayName;
+    if (dto.bio !== undefined) user.bio = dto.bio;
+
+    if (avatarBuffer) {
+      user.avatar = avatarBuffer;
+    }
+
+    return this.usersRepo.save(user);
   }
 
   async findByUsername(username: string): Promise<User> {
@@ -58,7 +70,7 @@ export class UserService {
   searchUsers(q: string) {
     return this.usersRepo
       .createQueryBuilder('u')
-      .select(['u.id', 'u.username', 'u.displayName', 'u.avatarUrl'])
+      .select(['u.id', 'u.username', 'u.displayName', 'u.avatar'])
       .where('u.username ILIKE :q OR u.displayName ILIKE :q', { q: `%${q}%` })
       .limit(20)
       .getMany();
@@ -67,7 +79,7 @@ export class UserService {
   async getProfile(viewerId: number, userId: number) {
     const u = await this.usersRepo.findOne({
       where: { id: userId },
-      select: ['id', 'email', 'username', 'displayName', 'avatarUrl', 'bio'],
+      select: ['id', 'email', 'username', 'displayName', 'avatar', 'bio'],
     });
     if (!u) throw new NotFoundException('User not found');
 
@@ -113,5 +125,12 @@ export class UserService {
       relations: ['following'],
     });
     return rels.map((r) => r.following);
+  }
+  async getAvatarBuffer(userId: number): Promise<Buffer | null> {
+    const u = await this.usersRepo.findOne({
+      where: { id: userId },
+      select: ['avatar'], // only select the BLOB column
+    });
+    return u?.avatar || null;
   }
 }

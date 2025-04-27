@@ -21,8 +21,8 @@ export class User extends TrackAppBaseEntity {
   @Column({ type: 'text', nullable: true })
   bio?: string;
 
-  @Column({ nullable: true })
-  avatarUrl?: string;
+  @Column({ type: 'bytea', nullable: true })
+  avatar?: Buffer;
 
   @OneToMany(() => WatchlistItem, (item) => item.user)
   watchlist: WatchlistItem[];

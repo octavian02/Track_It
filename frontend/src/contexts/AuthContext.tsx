@@ -4,7 +4,13 @@ import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 
 type JwtPayload = { sub: number; username: string };
-type User = { id: number; username: string; email?: string };
+type User = {
+  id: number;
+  username: string;
+  email?: string;
+  avatarUrl?: string;
+  displayName?: string;
+};
 
 interface Auth {
   user: User | null;
@@ -25,15 +31,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        setUser({ id: decoded.sub, username: decoded.username });
-      } catch {
-        setUser(null);
-      }
+    if (!token) {
+      setUser(null);
+      return;
     }
+
+    let decoded: JwtPayload;
+    try {
+      decoded = jwtDecode<JwtPayload>(token);
+    } catch (err) {
+      console.error("Invalid JWT:", err);
+      setUser(null);
+      return;
+    }
+
+    // apply auth header for all axios requests
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+    // fetch full user profile (including avatarUrl, displayName, bio, etc.)
+    axios
+      .get<User>("/api/user/me/profile")
+      .then((res) => {
+        setUser(res.data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch user profile:", err);
+        setUser(null);
+      });
   }, []);
 
   const logout = () => {
