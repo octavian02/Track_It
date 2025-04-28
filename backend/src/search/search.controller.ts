@@ -8,6 +8,6 @@ export class SearchController {
 
   @Get()
   async search(@Query('q') q: string): Promise<{ results: TmdbResult[] }> {
-    return this.searchService.search(q);
+    return await this.searchService.search(q);
   }
 }

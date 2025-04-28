@@ -32,8 +32,8 @@ export class MoviesController {
   }
 
   @Get(':id/credits')
-  getCredits(@Param('id') id: string) {
-    return this.moviesService.getCredits(+id);
+  async getCredits(@Param('id') id: string) {
+    return await this.moviesService.getCredits(+id);
   }
 
   @Get(':id')

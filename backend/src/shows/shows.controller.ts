@@ -56,4 +56,12 @@ export class ShowsController {
   async search(@Query('q') q: string) {
     return await this.showsService.search(q);
   }
+
+  @Get(':id/seasons/:seasonNumber')
+  async getSeasonEpisodes(
+    @Param('id') id: string,
+    @Param('seasonNumber') seasonNumber: string,
+  ) {
+    return this.showsService.getSeasonEpisodes(+id, +seasonNumber);
+  }
 }

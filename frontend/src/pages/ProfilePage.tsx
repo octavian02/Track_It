@@ -11,7 +11,6 @@ import {
   Grid,
   Card,
   CardActionArea,
-  CardMedia,
   CardContent,
   CircularProgress,
   Button,
@@ -21,19 +20,21 @@ import {
   DialogActions,
   TextField,
   Slider,
+  Paper,
   useTheme,
   useMediaQuery,
   Fade,
   Skeleton,
+  Tooltip,
 } from "@mui/material";
 import { Star as StarIcon } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotify } from "../components/NotificationsContext";
 import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../utils/cropImage";
-import AvatarLoader from "../components/AvatarLoader";
+import ImageWithFallback from "../components/ImageWithFallback";
+import { useAvatar } from "../hooks/useAvatar";
 
-// Interfaces
 interface Profile {
   id: number;
   username: string;
@@ -61,16 +62,11 @@ export default function ProfilePage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isOwn = username === "me" || username === user?.username;
 
-  // Profile state
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Tabs & media state
   const [tab, setTab] = useState(0);
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
-
-  // Edit dialog state
   const [editOpen, setEditOpen] = useState(false);
   const [formValues, setFormValues] = useState({
     displayName: "",
@@ -82,13 +78,12 @@ export default function ProfilePage() {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-  const [avatarSrc, setAvatarSrc] = useState<string>("");
+  const { url: avatarUrl, loading: avatarLoading } = useAvatar(user?.id);
 
   const onCropComplete = useCallback((_: any, pixels: any) => {
     setCroppedAreaPixels(pixels);
   }, []);
 
-  // Fetch profile data
   useEffect(() => {
     let mounted = true;
     setLoading(true);
@@ -106,30 +101,6 @@ export default function ProfilePage() {
       mounted = false;
     };
   }, [username, isOwn]);
-
-  useEffect(() => {
-    if (!profile) return;
-    let active = true;
-    let url: string;
-
-    axios
-      .get(`/api/user/${profile.id}/avatar`, {
-        responseType: "blob",
-      })
-      .then((res) => {
-        if (!active) return;
-        // create a browser‐readable URL for that blob
-        url = URL.createObjectURL(res.data);
-        setAvatarSrc(url);
-      })
-      .catch(console.error);
-
-    return () => {
-      active = false;
-      // free the memory once unmounted
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [profile]);
 
   useEffect(() => {
     if (!isOwn) return;
@@ -157,7 +128,7 @@ export default function ProfilePage() {
               mediaType: item.mediaType,
               posterUrl: posterPath
                 ? `https://image.tmdb.org/t/p/w300${posterPath}`
-                : undefined,
+                : "/default-movie-poster.png",
               tmdbRating,
               userScore,
             };
@@ -173,7 +144,6 @@ export default function ProfilePage() {
     };
   }, [tab, isOwn]);
 
-  // Handlers for edit dialog
   const handleEditOpen = () => {
     if (!profile) return;
     setFormValues({
@@ -235,37 +205,78 @@ export default function ProfilePage() {
   return (
     <Container sx={{ py: 4 }}>
       {/* PROFILE HEADER */}
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        mb={4}
-        flexDirection={isMobile ? "column" : "row"}
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          mb: 4,
+          borderRadius: 3,
+          display: "flex",
+          alignItems: "center",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 2,
+        }}
       >
-        <Box display="flex" alignItems="center" mb={isMobile ? 2 : 0}>
-          <AvatarLoader userId={profile.id} size={96} endpoint="/api/user" />
-          <Box>
-            <Typography variant="h4">{profile.displayName}</Typography>
-            <Typography variant="subtitle2" color="text.secondary">
-              @{profile.username}
+        {avatarLoading ? (
+          <Skeleton variant="circular" width={120} height={120} />
+        ) : (
+          <Avatar
+            src={avatarUrl || undefined}
+            alt={profile.displayName}
+            sx={{
+              width: 120,
+              height: 120,
+              boxShadow: 3,
+              border: "4px solid white",
+            }}
+          >
+            {profile.displayName.charAt(0)}
+          </Avatar>
+        )}
+        <Box flexGrow={1} textAlign={isMobile ? "center" : "left"}>
+          <Typography variant="h4" component="h1">
+            {profile.displayName}
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+            @{profile.username}
+          </Typography>
+          {profile.bio && (
+            <Typography variant="body2" sx={{ mt: 1, fontStyle: "italic" }}>
+              "{profile.bio}"
             </Typography>
-            {profile.bio && <Typography mt={1}>{profile.bio}</Typography>}
-            <Box mt={2} display="flex" gap={4}>
-              <Typography>
-                <strong>{profile.followersCount}</strong> Followers
-              </Typography>
-              <Typography>
-                <strong>{profile.followingCount}</strong> Following
-              </Typography>
-            </Box>
+          )}
+          <Box
+            mt={2}
+            display="flex"
+            justifyContent={isMobile ? "center" : "flex-start"}
+            gap={4}
+          >
+            <Typography>
+              <strong>{profile.followersCount}</strong> Followers
+            </Typography>
+            <Typography>
+              <strong>{profile.followingCount}</strong> Following
+            </Typography>
           </Box>
         </Box>
         {isOwn && (
-          <Button variant="outlined" onClick={handleEditOpen}>
+          <Button
+            variant="outlined" // was "contained"
+            onClick={handleEditOpen}
+            sx={{
+              color: theme.palette.text.primary, // ensures dark text
+              borderColor: theme.palette.text.primary, // dark border
+              backgroundColor: theme.palette.background.default, // light BG
+              "&:hover": {
+                backgroundColor: theme.palette.action.hover, // subtle gray on hover
+              },
+              alignSelf: isMobile ? "center" : "flex-start",
+            }}
+          >
             Edit Profile
           </Button>
         )}
-      </Box>
+      </Paper>
 
       {/* EDIT DIALOG */}
       <Dialog open={editOpen} onClose={handleEditClose} fullWidth maxWidth="sm">
@@ -273,7 +284,7 @@ export default function ProfilePage() {
         <DialogContent>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
             <Button variant="outlined" component="label">
-              Profile Image
+              Change Avatar
               <input
                 type="file"
                 accept="image/*"
@@ -286,7 +297,7 @@ export default function ProfilePage() {
                 sx={{
                   position: "relative",
                   width: "100%",
-                  height: 200,
+                  height: 240,
                   bgcolor: "#333",
                 }}
               >
@@ -338,82 +349,99 @@ export default function ProfilePage() {
         </DialogActions>
       </Dialog>
 
-      {/* TABS */}
+      {/* TABS & MEDIA GRID */}
       {isOwn && (
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          indicatorColor="primary"
-          textColor="primary"
-          sx={{ mb: 3 }}
-        >
-          <Tab label="Watchlist" />
-          <Tab label="Ratings" />
-        </Tabs>
-      )}
+        <>
+          <Tabs
+            value={tab}
+            onChange={(_, v) => setTab(v)}
+            indicatorColor="primary"
+            textColor="primary"
+            sx={{ mb: 3 }}
+          >
+            <Tab label="Watchlist" />
+            <Tab label="Ratings" />
+          </Tabs>
 
-      {/* MEDIA GRID */}
-      {isOwn &&
-        (tabLoading ? (
-          <Grid container spacing={2}>
-            {Array.from(new Array(12)).map((_, idx) => (
-              <Grid key={idx} item xs={6} sm={4} md={3} lg={2}>
-                <Card>
-                  <Skeleton variant="rectangular" height={240} />
-                  <CardContent>
-                    <Skeleton width="80%" />
-                    <Skeleton width="60%" />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Fade in timeout={500} key={tab}>
+          {tabLoading ? (
             <Grid container spacing={2}>
-              {mediaList.map((item) => (
-                <Grid key={item.mediaId} item xs={6} sm={4} md={3} lg={2}>
+              {Array.from(new Array(12)).map((_, idx) => (
+                <Grid key={idx} item xs={6} sm={4} md={3} lg={2}>
                   <Card>
-                    <CardActionArea
-                      component={Link}
-                      to={`/${item.mediaType}/${item.mediaId}`}
-                    >
-                      <CardMedia
-                        component="img"
-                        image={item.posterUrl || "/placeholder.png"}
-                        alt={item.mediaName}
-                        sx={{ height: 240, width: "100%", objectFit: "cover" }}
-                      />
-                      <CardContent>
-                        <Typography variant="subtitle2" noWrap>
-                          {item.mediaName}
-                        </Typography>
-                        <Box display="flex" alignItems="center" mt={1}>
-                          {item.tmdbRating != null && (
-                            <Box display="flex" alignItems="center">
-                              <StarIcon sx={{ color: "#FFD700", mr: 0.5 }} />
-                              <Typography variant="body2">
-                                {item.tmdbRating.toFixed(1)}
-                              </Typography>
-                            </Box>
-                          )}
-                          {item.userScore != null && (
-                            <Box display="flex" alignItems="center" ml={2}>
-                              <StarIcon sx={{ color: "#4caf50", mr: 0.5 }} />
-                              <Typography variant="body2">
-                                {item.userScore}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      </CardContent>
-                    </CardActionArea>
+                    <Skeleton variant="rectangular" height={240} />
+                    <CardContent>
+                      <Skeleton width="80%" />
+                      <Skeleton width="60%" />
+                    </CardContent>
                   </Card>
                 </Grid>
               ))}
             </Grid>
-          </Fade>
-        ))}
+          ) : (
+            <Fade in timeout={500} key={tab}>
+              <Grid container spacing={2}>
+                {mediaList.map((item) => (
+                  <Grid key={item.mediaId} item xs={6} sm={4} md={3} lg={2}>
+                    <Card
+                      sx={{
+                        transition: "transform 0.2s",
+                        "&:hover": { transform: "scale(1.05)" },
+                      }}
+                    >
+                      <CardActionArea
+                        component={Link}
+                        to={`/${item.mediaType}/${item.mediaId}`}
+                      >
+                        <ImageWithFallback
+                          className="movie-poster"
+                          src={item.posterUrl || "/default-movie-poster.png"}
+                          fallbackSrc="/default-movie-poster.png"
+                          style={{
+                            height: 240,
+                            objectFit: "cover",
+                            width: "100%",
+                          }}
+                        />
+                        <CardContent>
+                          <Typography variant="subtitle2" noWrap>
+                            {item.mediaName}
+                          </Typography>
+                          <Box display="flex" alignItems="center" mt={1}>
+                            {item.tmdbRating != null && (
+                              <Box display="flex" alignItems="center">
+                                <Tooltip title="TMDB rating">
+                                  <StarIcon
+                                    sx={{ color: "#FFD700", mr: 0.5 }}
+                                  />
+                                </Tooltip>
+                                <Typography variant="body2">
+                                  {item.tmdbRating.toFixed(1)}
+                                </Typography>
+                              </Box>
+                            )}
+                            {item.userScore != null && (
+                              <Box display="flex" alignItems="center" ml={2}>
+                                <Tooltip title="User Rating">
+                                  <StarIcon
+                                    sx={{ color: "#4caf50", mr: 0.5 }}
+                                  />
+                                </Tooltip>
+                                <Typography variant="body2">
+                                  {item.userScore}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Fade>
+          )}
+        </>
+      )}
     </Container>
   );
 }

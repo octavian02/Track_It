@@ -22,12 +22,10 @@ const AvatarLoader: React.FC<AvatarLoaderProps> = ({
 
     axios
       .get(`${endpoint}/${userId}/avatar`, {
-        // try blob first
         responseType: "blob",
       })
       .then((res) => {
         if (!isMounted) return;
-        // if axios gave us an ArrayBuffer instead of Blob, detect it:
         const blob =
           res.data instanceof Blob
             ? res.data
@@ -36,7 +34,6 @@ const AvatarLoader: React.FC<AvatarLoaderProps> = ({
         setSrc(objectUrl);
       })
       .catch((err) => {
-        // if blob mode failed, retry as arraybuffer
         console.warn("Blob fetch failed, retrying as arraybuffer", err);
         return axios
           .get(`${endpoint}/${userId}/avatar`, {

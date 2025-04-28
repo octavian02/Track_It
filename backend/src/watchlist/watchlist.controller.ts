@@ -19,22 +19,27 @@ export class WatchlistController {
   constructor(private svc: WatchlistService) {}
 
   @Get()
-  list(@Request() req) {
-    return this.svc.getWatchlist(req.user);
+  async list(@Request() req) {
+    return await this.svc.getWatchlist(req.user);
   }
 
   @Post(':mediaId')
-  add(
+  async add(
     @Request() req,
     @Param('mediaId') mediaId: string,
     @Body('mediaName') mediaName: string,
     @Body('mediaType') mediaType: MediaType,
   ) {
-    return this.svc.addToWatchlist(req.user, +mediaId, mediaName, mediaType);
+    return await this.svc.addToWatchlist(
+      req.user,
+      +mediaId,
+      mediaName,
+      mediaType,
+    );
   }
 
   @Delete(':mediaId')
-  remove(@Request() req, @Param('mediaId') mediaId: string) {
-    return this.svc.removeFromWatchlist(req.user, +mediaId);
+  async remove(@Request() req, @Param('mediaId') mediaId: string) {
+    return await this.svc.removeFromWatchlist(req.user, +mediaId);
   }
 }

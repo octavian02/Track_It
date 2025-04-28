@@ -3,6 +3,7 @@ import { TrackAppBaseEntity } from 'src/shared/entities/trackapp-base.entity';
 import { WatchlistItem } from 'src/watchlist/watchlist.entity';
 import { Entity, Column, OneToMany } from 'typeorm';
 import { Follow } from './follow.entity';
+import { History } from 'src/history/history.entity';
 
 @Entity()
 export class User extends TrackAppBaseEntity {
@@ -29,6 +30,9 @@ export class User extends TrackAppBaseEntity {
 
   @OneToMany(() => Rating, (rating) => rating.user)
   ratings: Rating[];
+
+  @OneToMany(() => History, (item) => item.user)
+  history: History[];
 
   @OneToMany(() => Follow, (f) => f.follower)
   following: Follow[];

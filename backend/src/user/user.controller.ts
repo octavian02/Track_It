@@ -32,7 +32,6 @@ import { Response } from 'express';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // ─── Signup / Login ────────────────────────────────────────────────────────
   @Post('signup')
   signup(@Body() dto: CreateUserDto) {
     return this.userService.createUser(dto);
@@ -47,15 +46,12 @@ export class UserController {
     return user;
   }
 
-  // ─── Protected: Profile ────────────────────────────────────────────────────
-
   @Get('me/profile')
   @UseGuards(JwtAuthGuard)
   getOwnProfile(@Request() req) {
     return this.userService.getProfile(req.user.id, req.user.id);
   }
 
-  // in getByUsername
   @Get(':username/profile')
   @UseGuards(JwtAuthGuard)
   async getByUsername(@Request() req, @Param('username') username: string) {

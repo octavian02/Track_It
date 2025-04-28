@@ -18,23 +18,29 @@ export class RatingsController {
   constructor(private svc: RatingsService) {}
 
   @Get()
-  list(@Request() req) {
-    return this.svc.getUserRatings(req.user);
+  async list(@Request() req) {
+    return await this.svc.getUserRatings(req.user);
   }
 
   @Get(':mediaId')
-  get(@Request() req, @Param('mediaId') mediaId: string) {
-    return this.svc.getRating(req.user, +mediaId);
+  async get(@Request() req, @Param('mediaId') mediaId: string) {
+    return await this.svc.getRating(req.user, +mediaId);
   }
 
   @Post(':mediaId')
-  set(
+  async set(
     @Request() req,
     @Param('mediaId') mediaId: string,
     @Body('mediaName') mediaName: string,
     @Body('mediaType') mediaType: MediaType,
     @Body('score') score: number,
   ) {
-    return this.svc.setRating(req.user, +mediaId, mediaName, mediaType, score);
+    return await this.svc.setRating(
+      req.user,
+      +mediaId,
+      mediaName,
+      mediaType,
+      score,
+    );
   }
 }

@@ -134,4 +134,14 @@ export class ShowsService {
     // 4) Return rounded average, or 0 if no data
     return count > 0 ? Math.round(total / count) : 0;
   }
+  async getSeasonEpisodes(tvId: number, seasonNumber: number) {
+    try {
+      const { data } = await this.client.get(
+        `/tv/${tvId}/season/${seasonNumber}`,
+      );
+      return data; // contains episodes[]
+    } catch (err) {
+      this.handleError('getSeasonEpisodes', err);
+    }
+  }
 }

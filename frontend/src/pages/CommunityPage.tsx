@@ -9,9 +9,12 @@ import {
   ListItemText,
   Typography,
   CircularProgress,
+  Skeleton,
 } from "@mui/material";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useAvatar } from "../hooks/useAvatar";
+import UserListItem from "../components/UserListItem";
 
 interface UserSummary {
   id: number;
@@ -61,21 +64,7 @@ export default function CommunityPage() {
       />
       <List>
         {results.map((u) => (
-          <ListItemButton
-            key={u.displayName}
-            component={Link}
-            to={`/user/${u.displayName}/profile`}
-          >
-            <ListItemAvatar>
-              <Avatar src={u.avatarUrl}>
-                {u.displayName?.[0] || u.username[0]}
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={u.displayName || u.username}
-              secondary={`@${u.username}`}
-            />
-          </ListItemButton>
+          <UserListItem key={u.id} user={u} />
         ))}
       </List>
     </Box>

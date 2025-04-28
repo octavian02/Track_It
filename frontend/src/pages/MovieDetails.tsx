@@ -6,6 +6,7 @@ import {
   Box,
   Typography,
   Button,
+  ButtonGroup,
   Rating,
   Tooltip,
   Dialog,
@@ -16,10 +17,14 @@ import {
   Favorite as FavoriteIcon,
   PlayArrow as PlayArrowIcon,
 } from "@mui/icons-material";
-import "./MovieDetails.css";
+import CheckIcon from "@mui/icons-material/Check";
+import WatchLaterIcon from "@mui/icons-material/WatchLater";
 import TrailerDialog from "../components/TrailerDialog";
 import { useNotify } from "../components/NotificationsContext";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
+import { useWatchedMovie } from "../hooks/useHistory";
+import { useWatchlist } from "../hooks/useWatchlist";
+import "./MovieDetails.css";
 
 interface Genre {
   id: number;
@@ -57,32 +62,36 @@ const MovieDetails: React.FC = () => {
   const [director, setDirector] = useState<CrewMember[]>([]);
   const [writers, setWriters] = useState<CrewMember[]>([]);
   const [userRating, setUserRating] = useState<number | null>(0);
-  // const [isFavorite, setIsFavorite] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
-  const [inWatchlist, setInWatchlist] = useState(false);
+
   const notify = useNotify();
+  const movieId = Number(id);
+  const { watched, toggle: toggleWatched } = useWatchedMovie(movieId);
+  const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
+    movieId,
+    movie?.title || "",
+    "movie"
+  );
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
-        const [movieRes, creditsRes, videosRes, wtchRes, ratingRes] =
-          await Promise.all([
-            axios.get<MovieDetail>(`/api/movies/${id}`),
-            axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
-              `/api/movies/${id}/credits`
-            ),
-            axios.get<{ results: any[] }>(`/api/movies/${id}/videos`),
-            axios.get<{ mediaId: number }[]>(`/api/watchlist`),
-            axios.get<{ score: number }>(`/api/ratings/${id}`),
-          ]);
+        const [movieRes, creditsRes, videosRes, ratingRes] = await Promise.all([
+          axios.get<MovieDetail>(`/api/movies/${id}`),
+          axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
+            `/api/movies/${id}/credits`
+          ),
+          axios.get<{ results: any[] }>(`/api/movies/${id}/videos`),
+          axios.get<{ score: number }>(`/api/ratings/${id}`),
+        ]);
+
         const m = movieRes.data;
         setMovie(m);
 
         const full = creditsRes.data.cast;
-
         setAllCast(full);
         setCast(full.slice(0, 8));
         setDirector(creditsRes.data.crew.filter((c) => c.job === "Director"));
@@ -96,7 +105,6 @@ const MovieDetails: React.FC = () => {
           (v) => v.type === "Trailer" && v.site === "YouTube"
         );
         setTrailerKey(trailer?.key || null);
-        setInWatchlist(wtchRes.data.some((item) => item.mediaId === +id));
         setUserRating(ratingRes.data?.score ?? 0);
       } catch (e) {
         console.error("Error loading movie details", e);
@@ -104,28 +112,8 @@ const MovieDetails: React.FC = () => {
     })();
   }, [id]);
 
-  const toggleWatchlist = async () => {
-    if (!movie) return;
-    try {
-      if (inWatchlist) {
-        await axios.delete(`/api/watchlist/${id}`);
-        setInWatchlist(false);
-        notify({ message: "Removed from watchlist", severity: "info" });
-      } else {
-        await axios.post(`/api/watchlist/${id}`, {
-          movieTitle: movie.title,
-        });
-        setInWatchlist(true);
-        notify({ message: "Added to watchlist", severity: "success" });
-      }
-    } catch {
-      notify({ message: "Could not update watchlist", severity: "error" });
-    }
-  };
-
   const onRatingChange = async (_: any, newVal: number | null) => {
-    if (newVal == null) return;
-    if (!movie) return;
+    if (newVal == null || !movie) return;
     try {
       await axios.post(`/api/ratings/${id}`, {
         mediaName: movie.title,
@@ -133,13 +121,18 @@ const MovieDetails: React.FC = () => {
         score: newVal,
       });
       setUserRating(newVal);
-      notify({
-        message: `Rated ${newVal.toFixed(1)}`,
-        severity: "success",
-      });
+      notify({ message: `Rated ${newVal.toFixed(1)}`, severity: "success" });
     } catch {
       notify({ message: "Could not save rating", severity: "error" });
     }
+  };
+
+  const handleWatchlist = () => {
+    toggleWatchlist();
+    notify({
+      message: inWatchlist ? "Removed from watchlist" : "Added to watchlist",
+      severity: inWatchlist ? "info" : "success",
+    });
   };
 
   if (!movie)
@@ -211,38 +204,63 @@ const MovieDetails: React.FC = () => {
                 }}
               />
             </Tooltip>
-
-            <Button
-              variant="outlined"
-              startIcon={
-                inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
-              }
-              onClick={toggleWatchlist}
-            >
-              {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
-            </Button>
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mt: 2,
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<PlayArrowIcon />}
-              onClick={() => setDialogOpen(true)}
+          <Box sx={{ mt: 3 }}>
+            <ButtonGroup
+              size="large"
+              sx={{
+                "& .MuiButton-root": {
+                  borderRadius: 3,
+                  textTransform: "none",
+                  px: 3,
+                  py: 1.5,
+                  fontWeight: 600,
+                  boxShadow: 2,
+                  "&:hover": { boxShadow: 6 },
+                  minWidth: 160,
+                },
+              }}
             >
-              Play Trailer
-            </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<PlayArrowIcon />}
+                onClick={() => setDialogOpen(true)}
+              >
+                Trailer
+              </Button>
+              <Button
+                variant={watched ? "contained" : "outlined"}
+                color={watched ? "success" : "primary"}
+                startIcon={watched ? <CheckIcon /> : <WatchLaterIcon />}
+                onClick={async () => {
+                  const res = await toggleWatched(movie.title);
+                  if (!res.success) {
+                    notify({
+                      message: "Could not update history",
+                      severity: "error",
+                    });
+                  }
+                }}
+              >
+                {watched ? "Watched" : "Mark as Watched"}
+              </Button>
+              <Button
+                variant={inWatchlist ? "contained" : "outlined"}
+                color={inWatchlist ? "warning" : "info"}
+                startIcon={
+                  inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                }
+                onClick={handleWatchlist}
+              >
+                {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
+              </Button>
+            </ButtonGroup>
           </Box>
         </Box>
       </Box>
 
-      {/* Top Cast Preview */}
       <section className="cast-section container">
         <Box
           sx={{
@@ -253,9 +271,7 @@ const MovieDetails: React.FC = () => {
         >
           <Typography variant="h5">Top Cast</Typography>
           <Link to={`/movie/${id}/credits`} style={{ textDecoration: "none" }}>
-            <Button variant="text" onClick={() => setCastDialog(true)}>
-              See All
-            </Button>
+            <Button>See All</Button>
           </Link>
         </Box>
         <Box className="cast-grid">
@@ -295,14 +311,17 @@ const MovieDetails: React.FC = () => {
             Full Cast
           </Typography>
           <Box className="cast-grid-full">
-            {cast.map((member) => (
+            {allCast.map((member) => (
               <Box key={member.id} className="cast-card">
                 <img
-                  src={`https://image.tmdb.org/t/p/w185${member.profile_path}`}
+                  src={
+                    member.profile_path
+                      ? `https://image.tmdb.org/t/p/w185${member.profile_path}`
+                      : PortraitPlaceholder
+                  }
                   alt={member.name}
                 />
                 <Typography variant="subtitle2">{member.name}</Typography>
-
                 <Tooltip title={member.character}>
                   <Typography
                     variant="caption"

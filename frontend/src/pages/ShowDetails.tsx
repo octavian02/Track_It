@@ -63,10 +63,6 @@ const ShowDetails: React.FC = () => {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
-  const [directors, setDirectors] = useState<CrewMember[]>([]);
-  const [producers, setProducers] = useState<CrewMember[]>([]);
-  const [showrunners, setShowrunners] = useState<CrewMember[]>([]);
-  const [writers, setWriters] = useState<CrewMember[]>([]);
   const [avgRuntime, setAvgRuntime] = useState<number | null>(null);
 
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
@@ -96,18 +92,6 @@ const ShowDetails: React.FC = () => {
 
         const fullCrew = creditsRes.data.crew;
         setCrew(fullCrew);
-        setDirectors(fullCrew.filter((c) => c.job === "Director"));
-        setProducers(fullCrew.filter((c) => c.job === "Producer"));
-        setShowrunners(
-          fullCrew.filter(
-            (c) => c.job === "Executive Producer" || c.job === "Creator"
-          )
-        );
-        setWriters(
-          fullCrew.filter((c) =>
-            ["Writer", "Screenplay", "Story"].includes(c.job)
-          )
-        );
 
         const trailer = videosRes.data.results.find(
           (v) => v.site === "YouTube" && v.type === "Trailer"
@@ -167,6 +151,7 @@ const ShowDetails: React.FC = () => {
 
   const backdropUrl = `https://image.tmdb.org/t/p/original${show.backdrop_path}`;
   const year = new Date(show.first_air_date).getFullYear();
+
   return (
     <div className="detail-page">
       {/* Hero Banner */}
@@ -179,8 +164,14 @@ const ShowDetails: React.FC = () => {
           <Typography variant="h3" gutterBottom>
             {show.name}
           </Typography>
-          <Typography variant="subtitle1" gutterBottom className="sub">
-            {year} • {show.number_of_seasons} seasons •{" "}
+          <Typography variant="subtitle1" className="sub">
+            {year} •{" "}
+            <Link
+              to={`/tv/${id}/seasons`}
+              style={{ textDecoration: "none", fontWeight: 600 }}
+            >
+              {show.number_of_seasons} seasons
+            </Link>
             {avgRuntime !== null && <> • {avgRuntime} min avg ep</>}
           </Typography>
           <Box sx={{ mt: 2 }} className="detail-extra">

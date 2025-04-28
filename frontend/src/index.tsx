@@ -31,6 +31,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchPage from "./pages/SearchPage";
 import CommunityPage from "./pages/CommunityPage";
 import ProfilePage from "./pages/ProfilePage";
+import ShowSeasons from "./pages/ShowSeasons";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -61,6 +62,7 @@ const router = createBrowserRouter(
         <Route path="/tv" element={<TvShowsPage />} />
         <Route path="/tv/:id" element={<ShowDetails />} />
         <Route path="/tv/:id/credits" element={<ShowCredits />} />
+        <Route path="tv/:id/seasons" element={<ShowSeasons />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/user/:username/profile" element={<ProfilePage />} />
