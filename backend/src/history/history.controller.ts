@@ -38,16 +38,16 @@ export class HistoryController {
 
   // ─── Episodes ────────────────────────────────────────────
 
-  @Post('show/:showId/season/:season/episode/:episode')
+  @Post('episode/:showId/:season/:episode')
   async markEpisode(
     @Request() req,
     @Param('showId') showId: string,
     @Param('season') season: string,
     @Param('episode') episode: string,
-    @Body('mediaName') showName: string,
-    @Body('episodeName') episodeName: string,
+    @Body('mediaName') showName?: string,
+    @Body('episodeName') episodeName?: string,
   ) {
-    return await this.svc.markEpisode(
+    return this.svc.markEpisode(
       req.user,
       +showId,
       +season,
@@ -57,14 +57,16 @@ export class HistoryController {
     );
   }
 
-  @Delete('show/:showId/season/:season/episode/:episode')
+  // Un‐mark a single episode
+  // DELETE /history/episode/456/2/5
+  @Delete('episode/:showId/:season/:episode')
   async unmarkEpisode(
     @Request() req,
     @Param('showId') showId: string,
     @Param('season') season: string,
     @Param('episode') episode: string,
   ) {
-    return await this.svc.unmarkEpisode(req.user, +showId, +season, +episode);
+    return this.svc.unmarkEpisode(req.user, +showId, +season, +episode);
   }
 
   @Get('show/:showId')

@@ -9,23 +9,33 @@ import { User } from '../user/user.entity';
 export class HistoryService {
   constructor(
     @InjectRepository(History)
-    private repo: Repository<History>,
+    private readonly repo: Repository<History>,
   ) {}
 
-  async markMovie(user: User, movieId: number, mediaName?: string) {
+  async markMovie(
+    user: User,
+    movieId: number,
+    mediaName?: string,
+  ): Promise<History> {
     const existing = await this.repo.findOne({
-      where: { user: { id: user.id }, mediaType: 'movie', mediaId: movieId },
+      where: {
+        user: { id: user.id },
+        mediaType: 'movie' as MediaType,
+        mediaId: movieId,
+      },
     });
     if (existing) return existing;
+
     const item = this.repo.create({
       user,
       mediaType: 'movie' as MediaType,
       mediaId: movieId,
-      mediaName: mediaName,
+      mediaName,
     });
     return this.repo.save(item);
   }
 
+  /** Unmark a movie as watched */
   async unmarkMovie(user: User, movieId: number) {
     await this.repo.delete({
       user: { id: user.id },
@@ -35,12 +45,18 @@ export class HistoryService {
     return { removed: true };
   }
 
-  async listWatchedMovies(user: User) {
+  /** List all watched movies for a user */
+  async listWatchedMovies(user: User): Promise<History[]> {
     return this.repo.find({
-      where: { user: { id: user.id }, mediaType: 'movie' as MediaType },
+      where: {
+        user: { id: user.id },
+        mediaType: 'movie' as MediaType,
+      },
+      order: { watchedAt: 'DESC' },
     });
   }
 
+  /** Mark a specific episode as watched */
   async markEpisode(
     user: User,
     showId: number,
@@ -48,7 +64,7 @@ export class HistoryService {
     episodeNumber: number,
     mediaName?: string,
     episodeName?: string,
-  ) {
+  ): Promise<History> {
     const existing = await this.repo.findOne({
       where: {
         user: { id: user.id },
@@ -56,11 +72,10 @@ export class HistoryService {
         mediaId: showId,
         seasonNumber,
         episodeNumber,
-        mediaName,
-        episodeName,
       },
     });
     if (existing) return existing;
+
     const item = this.repo.create({
       user,
       mediaType: 'episode' as MediaType,
@@ -73,6 +88,7 @@ export class HistoryService {
     return this.repo.save(item);
   }
 
+  /** Unmark an episode as watched */
   async unmarkEpisode(
     user: User,
     showId: number,
@@ -89,14 +105,17 @@ export class HistoryService {
     return { removed: true };
   }
 
-  async listWatchedEpisodes(user: User, showId: number) {
+  async listWatchedEpisodes(user: User, showId: number): Promise<History[]> {
     return this.repo.find({
       where: {
         user: { id: user.id },
         mediaType: 'episode' as MediaType,
         mediaId: showId,
       },
-      order: { seasonNumber: 'ASC', episodeNumber: 'ASC' },
+      order: {
+        seasonNumber: 'ASC',
+        episodeNumber: 'ASC',
+      },
     });
   }
 }

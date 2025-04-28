@@ -23,10 +23,6 @@ export class History {
   @Column({ type: 'enum', enum: ['movie', 'episode'] })
   mediaType: MediaType;
 
-  /**
-   * if mediaType = 'movie', this is movieId.
-   * if mediaType = 'episode', this is showId.
-   */
   @Column()
   mediaId: number;
 

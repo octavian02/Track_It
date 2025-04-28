@@ -21,6 +21,7 @@ import { useWatchlist } from "../hooks/useWatchlist";
 import TrailerDialog from "../components/TrailerDialog";
 import "./MovieDetails.css";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 
 interface Genre {
   id: number;
@@ -64,6 +65,7 @@ const ShowDetails: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
   const [avgRuntime, setAvgRuntime] = useState<number | null>(null);
+  const [tracked, setTracked] = useState(false);
 
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
     Number(id),
@@ -118,6 +120,38 @@ const ShowDetails: React.FC = () => {
     })();
   }, [id]);
 
+  useEffect(() => {
+    axios
+      .get(`/api/history/show/${id}`)
+      .then((res) => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setTracked(true);
+        }
+      })
+      .catch(() => {
+        setTracked(false);
+      });
+  }, [id]);
+
+  const toggleTracking = async () => {
+    try {
+      if (!tracked) {
+        // start tracking by marking S1·E1 watched
+        await axios.post(`/api/history/episode/${id}/1/1`, {
+          mediaName: show?.name,
+          episodeName: "",
+        });
+        setTracked(true);
+        notify({ message: "Started tracking show", severity: "success" });
+      } else {
+        await axios.delete(`/api/history/episode/${id}/1/1`);
+        setTracked(false);
+        notify({ message: "Stopped tracking show", severity: "info" });
+      }
+    } catch {
+      notify({ message: "Could not update tracking", severity: "error" });
+    }
+  };
   const handleWatchToggle = async () => {
     const res = await toggleWatchlist();
     if (!res.success) {
@@ -246,6 +280,13 @@ const ShowDetails: React.FC = () => {
               onClick={() => setDialogOpen(true)}
             >
               Play Trailer
+            </Button>
+            <Button
+              variant={tracked ? "outlined" : "contained"}
+              startIcon={<HistoryEduIcon />}
+              onClick={toggleTracking}
+            >
+              {tracked ? "Untrack Show" : "Start Tracking"}
             </Button>
           </Box>
         </Box>
