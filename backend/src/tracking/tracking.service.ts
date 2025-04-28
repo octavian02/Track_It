@@ -24,7 +24,7 @@ export class TrackingService {
       showName: dto.showName,
       seasonNumber: dto.seasonNumber || 1,
       episodeNumber: dto.episodeNumber || 0,
-      nextAirDate: dto.nextAirDate || null,
+      nextAirDate: dto.nextAirDate ? new Date(dto.nextAirDate) : null,
     });
     return this.repo.save(item);
   }
@@ -36,7 +36,7 @@ export class TrackingService {
     if (!item) throw new NotFoundException('Tracking entry not found');
     item.seasonNumber = dto.seasonNumber;
     item.episodeNumber = dto.episodeNumber;
-    item.nextAirDate = dto.nextAirDate || null;
+    item.nextAirDate = dto.nextAirDate ? new Date(dto.nextAirDate) : null;
     return this.repo.save(item);
   }
 

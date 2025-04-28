@@ -1,124 +1,116 @@
 // src/pages/TrackShowsPage.tsx
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
+  Container,
   Typography,
-  Button,
-  Box,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   TextField,
   DialogActions,
-  Tabs,
-  Tab,
-  Container,
+  Button,
 } from "@mui/material";
-import axios from "axios";
-import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
-interface TrackedShow {
+interface TrackingItem {
+  id: number;
   showId: number;
-  title: string;
-  poster_path: string;
-  progress: { season: number; episode: number; totalEpisodes?: number };
-  nextAir: string | null;
+  showName: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  nextAirDate: string | null;
 }
 
 export default function TrackShowsPage() {
-  const [shows, setShows] = useState<TrackedShow[]>([]);
-  const [edit, setEdit] = useState<TrackedShow | null>(null);
-  const [season, setSeason] = useState(1);
-  const [episode, setEpisode] = useState(1);
+  const [items, setItems] = useState<TrackingItem[]>([]);
+  const [editItem, setEditItem] = useState<TrackingItem | null>(null);
+  const [season, setSeason] = useState<number>(1);
+  const [episode, setEpisode] = useState<number>(1);
+
+  // load all tracked shows
+  const load = async () => {
+    const res = await axios.get<TrackingItem[]>("/api/tracking");
+    setItems(res.data);
+  };
 
   useEffect(() => {
-    axios.get<TrackedShow[]>("/api/tracking").then((r) => setShows(r.data));
+    load();
   }, []);
 
-  const openEdit = (s: TrackedShow) => {
-    setEdit(s);
-    setSeason(s.progress.season);
-    setEpisode(s.progress.episode);
+  // open the edit dialog
+  const openEdit = (item: TrackingItem) => {
+    setEditItem(item);
+    setSeason(item.seasonNumber);
+    setEpisode(item.episodeNumber);
   };
-  const closeEdit = () => setEdit(null);
+  const closeEdit = () => setEditItem(null);
 
+  // save season/episode changes
   const saveEdit = async () => {
-    if (!edit) return;
-    await axios.patch(
-      `/api/tracking/${edit.showId}`, // ← here
-      { season, episode }
-    );
-    const r = await axios.get<TrackedShow[]>("/api/tracking");
-    setShows(r.data);
+    if (!editItem) return;
+    await axios.patch(`/api/tracking/${editItem.id}`, {
+      seasonNumber: season,
+      episodeNumber: episode,
+    });
+    await load();
     closeEdit();
   };
 
-  const removeShow = async (id: number) => {
-    await axios.delete(`/api/tracking/${id}`); // ← here
-    setShows(shows.filter((s) => s.showId !== id));
+  // delete a tracking entry
+  const deleteItem = async (id: number) => {
+    await axios.delete(`/api/tracking/${id}`);
+    await load();
   };
 
   return (
     <Container sx={{ py: 4 }}>
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        <Tabs value={0}>
-          <Tab label="Shows" />
-          <Tab label="Movies" disabled />
-        </Tabs>
-      </Box>
+      <Typography variant="h4" gutterBottom>
+        Your Tracked Shows
+      </Typography>
 
-      <Grid container spacing={2}>
-        {shows.map((s) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={s.showId}>
-            <Card sx={{ position: "relative" }}>
-              <CardMedia
-                component="img"
-                height="200"
-                image={`https://image.tmdb.org/t/p/w300${s.poster_path}`}
-                alt={s.title}
-              />
-
-              <CardContent>
-                <Typography variant="h6" noWrap>
-                  {s.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  S{s.progress.season}:E{s.progress.episode}
-                  {s.progress.totalEpisodes
-                    ? ` of ${s.progress.totalEpisodes}`
-                    : ""}
-                </Typography>
-                {s.nextAir && (
-                  <Typography variant="caption" color="primary">
-                    Next: {new Date(s.nextAir).toLocaleDateString()}
-                  </Typography>
-                )}
-              </CardContent>
-
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", p: 1 }}
+      <List>
+        {items.map((item) => (
+          <ListItem key={item.id} divider>
+            <ListItemText
+              primary={item.showName}
+              secondary={
+                `S${item.seasonNumber} · E${item.episodeNumber}` +
+                (item.nextAirDate
+                  ? ` • Next: ${new Date(
+                      item.nextAirDate
+                    ).toLocaleDateString()}`
+                  : "")
+              }
+            />
+            <ListItemSecondaryAction>
+              <IconButton
+                edge="end"
+                aria-label="edit"
+                onClick={() => openEdit(item)}
               >
-                <Button size="small" onClick={() => openEdit(s)}>
-                  Edit
-                </Button>
-                <Button
-                  size="small"
-                  color="error"
-                  onClick={() => removeShow(s.showId)}
-                >
-                  Remove
-                </Button>
-              </Box>
-            </Card>
-          </Grid>
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                edge="end"
+                aria-label="delete"
+                onClick={() => deleteItem(item.id)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </ListItemSecondaryAction>
+          </ListItem>
         ))}
-      </Grid>
+      </List>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!edit} onClose={closeEdit}>
+      {/* Edit Progress Dialog */}
+      <Dialog open={!!editItem} onClose={closeEdit}>
         <DialogTitle>Edit Progress</DialogTitle>
         <DialogContent>
           <TextField
@@ -127,7 +119,7 @@ export default function TrackShowsPage() {
             fullWidth
             margin="dense"
             value={season}
-            onChange={(e) => setSeason(+e.target.value)}
+            onChange={(e) => setSeason(Number(e.target.value))}
           />
           <TextField
             label="Episode"
@@ -135,7 +127,7 @@ export default function TrackShowsPage() {
             fullWidth
             margin="dense"
             value={episode}
-            onChange={(e) => setEpisode(+e.target.value)}
+            onChange={(e) => setEpisode(Number(e.target.value))}
           />
         </DialogContent>
         <DialogActions>

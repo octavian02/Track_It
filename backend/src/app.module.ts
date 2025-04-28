@@ -15,6 +15,7 @@ import { SearchModule } from './search/search.module';
 import { redisStore } from 'cache-manager-redis-store';
 import { CacheModule } from '@nestjs/cache-manager';
 import { HistoryModule } from './history/history.module';
+import { TrackingModule } from './tracking/tracking.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { HistoryModule } from './history/history.module';
     ShowsModule,
     SearchModule,
     HistoryModule,
+    TrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

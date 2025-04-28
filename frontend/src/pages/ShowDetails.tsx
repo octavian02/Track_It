@@ -16,12 +16,12 @@ import {
   Favorite as FavoriteIcon,
   PlayArrow as PlayArrowIcon,
 } from "@mui/icons-material";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
 import TrailerDialog from "../components/TrailerDialog";
-import "./MovieDetails.css";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
-import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import "./MovieDetails.css";
 
 interface Genre {
   id: number;
@@ -56,6 +56,7 @@ interface ShowDetail {
 const ShowDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const notify = useNotify();
+
   const [show, setShow] = useState<ShowDetail | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [allCast, setAllCast] = useState<CastMember[]>([]);
@@ -65,7 +66,6 @@ const ShowDetails: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
   const [avgRuntime, setAvgRuntime] = useState<number | null>(null);
-  const [tracked, setTracked] = useState(false);
 
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
     Number(id),
@@ -73,6 +73,7 @@ const ShowDetails: React.FC = () => {
     "tv"
   );
 
+  // — fetch show + credits + videos + rating
   useEffect(() => {
     if (!id) return;
     (async () => {
@@ -87,13 +88,9 @@ const ShowDetails: React.FC = () => {
         ]);
 
         setShow(showRes.data);
-
-        const fullCast = creditsRes.data.cast;
-        setAllCast(fullCast);
-        setCast(fullCast.slice(0, 8));
-
-        const fullCrew = creditsRes.data.crew;
-        setCrew(fullCrew);
+        setAllCast(creditsRes.data.cast);
+        setCast(creditsRes.data.cast.slice(0, 8));
+        setCrew(creditsRes.data.crew);
 
         const trailer = videosRes.data.results.find(
           (v) => v.site === "YouTube" && v.type === "Trailer"
@@ -107,6 +104,7 @@ const ShowDetails: React.FC = () => {
     })();
   }, [id]);
 
+  // — fetch avg runtime
   useEffect(() => {
     (async () => {
       try {
@@ -120,50 +118,20 @@ const ShowDetails: React.FC = () => {
     })();
   }, [id]);
 
-  useEffect(() => {
-    axios
-      .get(`/api/history/show/${id}`)
-      .then((res) => {
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setTracked(true);
-        }
-      })
-      .catch(() => {
-        setTracked(false);
-      });
-  }, [id]);
-
-  const toggleTracking = async () => {
-    try {
-      if (!tracked) {
-        // start tracking by marking S1·E1 watched
-        await axios.post(`/api/history/episode/${id}/1/1`, {
-          mediaName: show?.name,
-          episodeName: "",
-        });
-        setTracked(true);
-        notify({ message: "Started tracking show", severity: "success" });
-      } else {
-        await axios.delete(`/api/history/episode/${id}/1/1`);
-        setTracked(false);
-        notify({ message: "Stopped tracking show", severity: "info" });
-      }
-    } catch {
-      notify({ message: "Could not update tracking", severity: "error" });
-    }
-  };
+  // — toggle watchlist
   const handleWatchToggle = async () => {
     const res = await toggleWatchlist();
-    if (!res.success) {
-      notify({ message: "Could not update watchlist", severity: "error" });
-    } else {
-      notify({
-        message: res.added ? "Added to watchlist" : "Removed from watchlist",
-        severity: res.added ? "success" : "info",
-      });
-    }
+    notify({
+      message: res.success
+        ? res.added
+          ? "Added to watchlist"
+          : "Removed from watchlist"
+        : "Could not update watchlist",
+      severity: res.success ? (res.added ? "success" : "info") : "error",
+    });
   };
 
+  // — rate show
   const handleRatingChange = async (_: any, newVal: number | null) => {
     if (newVal == null || !show) return;
     try {
@@ -176,6 +144,21 @@ const ShowDetails: React.FC = () => {
       notify({ message: `Rated ${newVal.toFixed(1)}`, severity: "success" });
     } catch {
       notify({ message: "Could not save rating", severity: "error" });
+    }
+  };
+
+  const handleStartTracking = async () => {
+    if (!show) return;
+    try {
+      await axios.post(`/api/tracking`, {
+        showId: show.id,
+        showName: show.name,
+        seasonNumber: 1,
+        episodeNumber: 1,
+      });
+      notify({ message: "Started tracking show", severity: "success" });
+    } catch {
+      notify({ message: "Could not start tracking", severity: "error" });
     }
   };
 
@@ -208,6 +191,7 @@ const ShowDetails: React.FC = () => {
             </Link>
             {avgRuntime !== null && <> • {avgRuntime} min avg ep</>}
           </Typography>
+
           <Box sx={{ mt: 2 }} className="detail-extra">
             <Typography variant="subtitle1">
               <strong>Genres:</strong>{" "}
@@ -217,12 +201,20 @@ const ShowDetails: React.FC = () => {
               <strong>Episodes:</strong> {show.number_of_episodes}
             </Typography>
           </Box>
+
           <Typography variant="subtitle2" gutterBottom className="language">
             Language: {show.original_language.toUpperCase()}
           </Typography>
 
           {/* Stats & Actions */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3, mt: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              mt: 1,
+            }}
+          >
             <Tooltip title="TMDB Score">
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="h5" sx={{ color: "#f5c518" }}>
@@ -266,6 +258,7 @@ const ShowDetails: React.FC = () => {
             </Button>
           </Box>
 
+          {/* Trailer & “Start Tracking” */}
           <Box
             sx={{
               display: "flex",
@@ -281,12 +274,13 @@ const ShowDetails: React.FC = () => {
             >
               Play Trailer
             </Button>
+
             <Button
-              variant={tracked ? "outlined" : "contained"}
+              variant="contained"
               startIcon={<HistoryEduIcon />}
-              onClick={toggleTracking}
+              onClick={handleStartTracking}
             >
-              {tracked ? "Untrack Show" : "Start Tracking"}
+              Start Tracking
             </Button>
           </Box>
         </Box>
@@ -302,10 +296,12 @@ const ShowDetails: React.FC = () => {
           }}
         >
           <Typography variant="h5">Top Cast</Typography>
-          <Link to={`/tv/${id}/credits`} style={{ textDecoration: "none" }}>
-            <Button variant="text" onClick={() => setCastDialog(true)}>
-              See All
-            </Button>
+          <Link
+            to={`/tv/${id}/credits`}
+            style={{ textDecoration: "none" }}
+            onClick={() => setCastDialog(true)}
+          >
+            <Button variant="text">See All</Button>
           </Link>
         </Box>
         <Box className="cast-grid">
