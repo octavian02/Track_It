@@ -73,7 +73,6 @@ const ShowDetails: React.FC = () => {
     "tv"
   );
 
-  // — fetch show + credits + videos + rating
   useEffect(() => {
     if (!id) return;
     (async () => {
@@ -117,7 +116,7 @@ const ShowDetails: React.FC = () => {
       }
     })();
   }, [id]);
-
+  //TODO: WRITE THE BUTTON THAT IT"S OBVIOUSLY BEEN PRESSED< THE ADD TO TRACKING ONE
   // — toggle watchlist
   const handleWatchToggle = async () => {
     const res = await toggleWatchlist();
@@ -154,7 +153,7 @@ const ShowDetails: React.FC = () => {
         showId: show.id,
         showName: show.name,
         seasonNumber: 1,
-        episodeNumber: 1,
+        episodeNumber: 0,
       });
       notify({ message: "Started tracking show", severity: "success" });
     } catch {
@@ -246,41 +245,91 @@ const ShowDetails: React.FC = () => {
                 }}
               />
             </Tooltip>
-
-            <Button
-              variant="outlined"
-              startIcon={
-                inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
-              }
-              onClick={handleWatchToggle}
-            >
-              {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
-            </Button>
           </Box>
 
-          {/* Trailer & “Start Tracking” */}
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               mt: 2,
+              gap: 2,
             }}
           >
             <Button
+              size="medium"
               variant="contained"
+              color="secondary"
               startIcon={<PlayArrowIcon />}
               onClick={() => setDialogOpen(true)}
+              sx={{
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: "#f50057",
+                },
+              }}
             >
-              Play Trailer
+              Trailer
             </Button>
-
             <Button
+              size="medium"
               variant="contained"
+              color="primary"
               startIcon={<HistoryEduIcon />}
               onClick={handleStartTracking}
+              sx={{
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: "#303f9f",
+                },
+              }}
             >
               Start Tracking
+            </Button>
+            <Button
+              size="medium"
+              variant={inWatchlist ? "contained" : "outlined"}
+              color={inWatchlist ? "warning" : "info"}
+              startIcon={
+                inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
+              }
+              onClick={handleWatchToggle}
+              sx={{
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: inWatchlist ? "#f57c00" : "#00acc1",
+                  borderColor: inWatchlist ? "#f57c00" : "#00838f",
+                },
+                borderColor: inWatchlist ? "#ff9800" : "#00bcd4",
+                borderWidth: 2,
+                borderStyle: "solid",
+                "&:focus": {
+                  outline: "none",
+                },
+              }}
+            >
+              {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
             </Button>
           </Box>
         </Box>

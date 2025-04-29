@@ -4,7 +4,8 @@ import { useWatchlistContext } from "../contexts/WatchlistContext";
 export function useWatchlist(
   mediaId: number,
   mediaName: string,
-  mediaType: "movie" | "tv"
+  mediaType: "movie" | "tv",
+  releaseDate?: number
 ) {
   const { items, toggleItem } = useWatchlistContext();
   const inWatchlist = items.has(mediaId);

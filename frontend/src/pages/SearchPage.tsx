@@ -34,6 +34,8 @@ interface BannerMedia {
   poster_path?: string;
   vote_average?: number;
   resourceType: "movie" | "tv";
+  release_date?: string; // ← new
+  first_air_date?: string;
 }
 
 export default function SearchPage() {
@@ -69,11 +71,27 @@ export default function SearchPage() {
         params.releaseFrom = releaseFrom.toISOString().slice(0, 10);
       if (releaseTo) params.releaseTo = releaseTo.toISOString().slice(0, 10);
 
-      const { data } = await axios.get<{ results: BannerMedia[] }>(
+      const { data } = await axios.get<{ results: any[] }>(
         "/api/search/discover",
         { params }
       );
-      setResults(data.results);
+      console.log("Discover response", data);
+      const mapped = data.results.map((r) => ({
+        id: r.id,
+        title: r.title,
+        name: r.name,
+        overview: r.overview,
+        backdrop_path: r.backdrop_path,
+        poster_path: r.poster_path,
+        vote_average: r.vote_average,
+        resourceType: r.media_type,
+        release_date: r.release_date, // ← new
+        first_air_date: r.first_air_date,
+      }));
+      setResults(mapped);
+    } catch (err) {
+      console.error("Search discover failed", err);
+      // optional: show a Snackbar or Notification here
     } finally {
       setLoading(false);
     }
@@ -87,6 +105,7 @@ export default function SearchPage() {
 
       <Grid container spacing={2} alignItems="center">
         {/* Media Type */}
+
         <Grid item xs={12} sm={6} md={3}>
           <FormControl fullWidth>
             <InputLabel>Type</InputLabel>

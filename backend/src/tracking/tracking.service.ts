@@ -45,9 +45,14 @@ export class TrackingService {
     return { success: true };
   }
 
-  /**
-   * Called from history: bump tracking when an episode is watched.
-   */
+  async getOne(user: User, id: number) {
+    const item = await this.repo.findOne({
+      where: { id, user: { id: user.id } },
+    });
+    if (!item) throw new NotFoundException('Tracking entry not found');
+    return item;
+  }
+
   async bumpFromHistory(
     user: User,
     showId: number,

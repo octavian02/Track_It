@@ -32,4 +32,8 @@ export class WatchlistItem {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   addedAt: Date;
+
+  @Column()
+  @Column({ nullable: true })
+  releaseDate: number;
 }

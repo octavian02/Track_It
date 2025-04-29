@@ -11,11 +11,17 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
 import { HistoryService } from './history.service';
+import { TrackingService } from 'src/tracking/tracking.service';
+import { ShowsService } from 'src/shows/shows.service';
 
 @Controller('history')
 @UseGuards(JwtAuthGuard)
 export class HistoryController {
-  constructor(private readonly svc: HistoryService) {}
+  constructor(
+    private readonly historySvc: HistoryService,
+    private readonly trackingSvc: TrackingService,
+    private readonly showsSvc: ShowsService,
+  ) {}
 
   @Post('movie/:id')
   async markMovie(
@@ -23,20 +29,18 @@ export class HistoryController {
     @Param('id') id: string,
     @Body('mediaName') mediaName: string,
   ) {
-    return await this.svc.markMovie(req.user, +id, mediaName);
+    return await this.historySvc.markMovie(req.user, +id, mediaName);
   }
 
   @Delete('movie/:id')
   async unmarkMovie(@Request() req, @Param('id') id: string) {
-    return await this.svc.unmarkMovie(req.user, +id);
+    return await this.historySvc.unmarkMovie(req.user, +id);
   }
 
   @Get('movie')
   async listMovies(@Request() req) {
-    return await this.svc.listWatchedMovies(req.user);
+    return await this.historySvc.listWatchedMovies(req.user);
   }
-
-  // ─── Episodes ────────────────────────────────────────────
 
   @Post('episode/:showId/:season/:episode')
   async markEpisode(
@@ -47,7 +51,8 @@ export class HistoryController {
     @Body('mediaName') showName?: string,
     @Body('episodeName') episodeName?: string,
   ) {
-    return this.svc.markEpisode(
+    // 1️⃣ mark in history
+    const hist = await this.historySvc.markEpisode(
       req.user,
       +showId,
       +season,
@@ -55,6 +60,17 @@ export class HistoryController {
       showName,
       episodeName,
     );
+
+    // 2️⃣ bump tracking automatically
+    await this.trackingSvc.bumpFromHistory(
+      req.user,
+      +showId,
+      showName,
+      +season,
+      +episode,
+    );
+
+    return hist;
   }
 
   // Un‐mark a single episode
@@ -66,11 +82,41 @@ export class HistoryController {
     @Param('season') season: string,
     @Param('episode') episode: string,
   ) {
-    return this.svc.unmarkEpisode(req.user, +showId, +season, +episode);
+    // 1) remove from history
+    await this.historySvc.unmarkEpisode(req.user, +showId, +season, +episode);
+
+    // 2) compute rollback target
+    let prevSeason = +season;
+    let prevEpisode = +episode - 1;
+
+    if (prevEpisode < 1 && prevSeason > 1) {
+      // roll into previous season
+      prevSeason--;
+      const seasonData = await this.showsSvc.getSeasonEpisodes(
+        +showId,
+        prevSeason,
+      );
+      prevEpisode = seasonData.episodes.length;
+    } else if (prevEpisode < 1) {
+      // at S1E1 → go to “not started”
+      prevEpisode = 0;
+    }
+
+    // 3) explicitly update the tracking row
+    const tracks = await this.trackingSvc.list(req.user);
+    const track = tracks.find((t) => t.showId === +showId);
+    if (track) {
+      await this.trackingSvc.update(req.user, track.id, {
+        seasonNumber: prevSeason,
+        episodeNumber: prevEpisode,
+      });
+    }
+
+    return { removed: true };
   }
 
   @Get('show/:showId')
   async listEpisodes(@Request() req, @Param('showId') showId: string) {
-    return await this.svc.listWatchedEpisodes(req.user, +showId);
+    return await this.historySvc.listWatchedEpisodes(req.user, +showId);
   }
 }

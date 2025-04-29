@@ -1,6 +1,7 @@
 // src/shows/shows.service.ts
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
+import { randomInt } from 'crypto';
 
 @Injectable()
 export class ShowsService {
@@ -109,7 +110,6 @@ export class ShowsService {
   }
 
   async getAverageEpisodeRuntime(tvId: number): Promise<number> {
-    // 1) Fetch show metadata to get seasons list
     const { data: show } = await this.client.get(`/tv/${tvId}`);
     let total = 0;
     let count = 0;
@@ -131,7 +131,6 @@ export class ShowsService {
       }
     }
 
-    // 4) Return rounded average, or 0 if no data
     return count > 0 ? Math.round(total / count) : 0;
   }
   async getSeasonEpisodes(tvId: number, seasonNumber: number) {
@@ -142,6 +141,50 @@ export class ShowsService {
       return data; // contains episodes[]
     } catch (err) {
       this.handleError('getSeasonEpisodes', err);
+    }
+  }
+  async getRandom(): Promise<any> {
+    try {
+      // 1) First fetch page 1 to see how many total pages
+      const first = await this.client.get('/tv/popular', {
+        params: { page: 1 },
+      });
+      const totalPages = Math.min(first.data.total_pages, 500);
+
+      // 2) Pick a random page between 1 and totalPages
+      const page = randomInt(1, totalPages + 1);
+
+      // 3) Fetch that page
+      const { data } = await this.client.get('/tv/popular', {
+        params: { page },
+      });
+
+      // 4) Pick a random result from that page
+      const results = data.results as any[];
+      if (!results.length) throw new Error('No shows on page');
+
+      const idx = randomInt(0, results.length);
+      return results[idx];
+    } catch (err) {
+      this.logger.error(`getRandom failed: ${err.message}`);
+      throw new HttpException(
+        'Failed to fetch random show',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+  }
+  async getEpisodeDetail(
+    tvId: number,
+    seasonNumber: number,
+    episodeNumber: number,
+  ) {
+    try {
+      const { data } = await this.client.get(
+        `/tv/${tvId}/season/${seasonNumber}/episode/${episodeNumber}`,
+      );
+      return data;
+    } catch (err) {
+      this.handleError('getEpisodeDetail', err);
     }
   }
 }

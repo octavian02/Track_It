@@ -8,6 +8,7 @@ import {
   Body,
   Request,
   UseGuards,
+  NotFoundException,
 } from '@nestjs/common';
 import { TrackingService } from './tracking.service';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
@@ -22,6 +23,13 @@ export class TrackingController {
   @Get()
   list(@Request() req) {
     return this.svc.list(req.user);
+  }
+
+  @Get(':id')
+  async getOne(@Request() req, @Param('id') id: string) {
+    const item = await this.svc.getOne(req.user, +id);
+    if (!item) throw new NotFoundException('Tracking entry not found');
+    return item;
   }
 
   @Post()

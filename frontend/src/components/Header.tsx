@@ -1,4 +1,3 @@
-// src/components/Header.tsx
 import React from "react";
 import {
   AppBar,
@@ -25,7 +24,7 @@ import {
   Chat as CommunityIcon,
   FilterList as FilterListIcon,
 } from "@mui/icons-material";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import UserMenu from "./UserMenu";
 import SearchBar from "./SearchBar";
 
@@ -42,69 +41,106 @@ const Header: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
+  const toggleDrawer = (open: boolean) => () => setDrawerOpen(open);
+
   return (
     <>
-      <AppBar position="static" sx={{ bgcolor: "black" }} elevation={0}>
+      <AppBar position="static" sx={{ bgcolor: "#000" }} elevation={1}>
         <Toolbar>
           {isMobile && (
-            <IconButton edge="start" onClick={() => setDrawerOpen(true)}>
-              <MenuIcon sx={{ color: "#fff" }} />
+            <IconButton
+              edge="start"
+              onClick={toggleDrawer(true)}
+              sx={{ color: "#fff" }}
+            >
+              <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" sx={{ flexGrow: 1, color: "#fff" }}>
-            <Link to="/mainpage" style={{ textDecoration: "none" }}>
-              TrackIt
-            </Link>
-          </Typography>
-          {!isMobile &&
-            navItems.map((item) => (
-              <Button
-                key={item.label}
-                startIcon={item.icon}
-                sx={{ color: "#fff", textTransform: "none", mx: 0.5 }}
-                href={item.path}
-              >
-                {item.label}
-              </Button>
-            ))}
-          {/* spacer */}
-          <Box sx={{ flexGrow: 1 }} />
-          <SearchBar />
-          <IconButton
-            component={Link}
-            to="/search"
-            sx={{ color: "#fff", ml: 1 }}
-            title="Advanced filters"
+
+          {/* Brand */}
+          <Typography
+            component={RouterLink}
+            to="/mainpage"
+            variant="h5"
+            sx={{
+              color: "#fff",
+              fontWeight: 700,
+              textDecoration: "none",
+              "&:hover": { color: "primary.main" },
+              mr: 2,
+            }}
           >
-            <FilterListIcon />
-          </IconButton>
-          <UserMenu />
-          <IconButton sx={{ color: "#fff" }}>
-            <BookmarkIcon />
-          </IconButton>
+            TrackIt
+          </Typography>
+
+          {/* Desktop Nav Items */}
+          {!isMobile && (
+            <Box
+              sx={{ display: "flex", flexGrow: 1, justifyContent: "center" }}
+            >
+              {navItems.map((item) => (
+                <Button
+                  key={item.label}
+                  component={RouterLink}
+                  to={item.path}
+                  startIcon={item.icon}
+                  sx={{
+                    color: "#fff",
+                    textTransform: "none",
+                    mx: 0.5,
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </Box>
+          )}
+
+          {/* Search & Actions */}
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center" }}>
+            <SearchBar />
+            <IconButton
+              component={RouterLink}
+              to="/search"
+              sx={{ color: "#fff", ml: 1 }}
+              title="Advanced filters"
+            >
+              <FilterListIcon />
+            </IconButton>
+            <UserMenu />
+            <IconButton
+              component={RouterLink}
+              to="/bookmarks"
+              sx={{ color: "#fff", ml: 1 }}
+            >
+              <BookmarkIcon />
+            </IconButton>
+          </Box>
         </Toolbar>
       </AppBar>
 
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-      >
+      {/* Mobile Drawer */}
+      <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
         <Box
           sx={{ width: 250 }}
           role="presentation"
-          onClick={() => setDrawerOpen(false)}
+          onClick={toggleDrawer(false)}
         >
           <List>
             {navItems.map((item) => (
-              <ListItemButton key={item.label} component="a" href={item.path}>
+              <ListItemButton
+                key={item.label}
+                component={RouterLink}
+                to={item.path}
+                sx={{ color: "#000" }}
+              >
                 <ListItemIcon>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
-            {/* also include in mobile drawer */}
-            <ListItemButton component={Link} to="/search">
-              <ListItemIcon sx={{ color: "#000" }}>
+            <ListItemButton component={RouterLink} to="/search">
+              <ListItemIcon>
                 <FilterListIcon />
               </ListItemIcon>
               <ListItemText primary="Advanced Search" />

@@ -6,6 +6,11 @@ import { ShowsService } from './shows.service';
 export class ShowsController {
   constructor(private readonly showsService: ShowsService) {}
 
+  @Get('random')
+  async getRandom() {
+    return await this.showsService.getRandom();
+  }
+
   @Get('trending')
   async getTrending() {
     return await this.showsService.getTrending();
@@ -63,5 +68,18 @@ export class ShowsController {
     @Param('seasonNumber') seasonNumber: string,
   ) {
     return this.showsService.getSeasonEpisodes(+id, +seasonNumber);
+  }
+  /** New: get a single episode’s details */
+  @Get(':id/seasons/:seasonNumber/episodes/:episodeNumber')
+  async getEpisodeDetail(
+    @Param('id') id: string,
+    @Param('seasonNumber') seasonNumber: string,
+    @Param('episodeNumber') episodeNumber: string,
+  ) {
+    return this.showsService.getEpisodeDetail(
+      +id,
+      +seasonNumber,
+      +episodeNumber,
+    );
   }
 }

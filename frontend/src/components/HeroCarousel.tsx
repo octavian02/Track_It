@@ -1,7 +1,14 @@
 // src/components/HeroCarousel.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, MouseEvent } from "react";
 import axios from "axios";
-import { IconButton, Box, Typography, Button } from "@mui/material";
+import {
+  IconButton,
+  Box,
+  Typography,
+  Button,
+  useTheme,
+  styled,
+} from "@mui/material";
 import {
   ArrowBackIos,
   ArrowForwardIos,
@@ -11,7 +18,6 @@ import {
   Bookmark,
 } from "@mui/icons-material";
 import TrailerDialog from "./TrailerDialog";
-import { styled } from "@mui/system";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { useNotify } from "./NotificationsContext";
 import { useNavigate } from "react-router-dom";
@@ -30,12 +36,15 @@ interface HeroCarouselProps {
   items: BannerMedia[];
 }
 
-const CarouselRoot = styled(Box)({
+const CarouselRoot = styled(Box)(({ theme }) => ({
   position: "relative",
-  height: "50vh",
+  height: "55vh",
   color: "#fff",
   overflow: "hidden",
-});
+  [theme.breakpoints.down("md")]: {
+    height: "50vh",
+  },
+}));
 
 const Slide = styled(Box)<{ bg: string }>(({ bg }) => ({
   position: "absolute",
@@ -44,51 +53,45 @@ const Slide = styled(Box)<{ bg: string }>(({ bg }) => ({
   width: "100%",
   height: "100%",
   backgroundImage: `url(${bg})`,
-  backgroundSize: "contain",
+  backgroundSize: "cover",
   backgroundPosition: "center",
-  transition: "opacity 0.8s ease-in-out",
+  transition: "opacity 1s ease-in-out",
   opacity: 0,
-  "&.active": { opacity: 1 },
+  zIndex: 0,
+  "&.active": { opacity: 1, zIndex: 1 },
 }));
 
-const Content = styled(Box)({
+const FadeOverlay = styled("div")(({ theme }) => ({
   position: "absolute",
-  bottom: "2rem",
-  left: "2rem",
-  maxWidth: "50%",
-  zIndex: 2,
-});
-
-const FadeOverlay = styled("div")({
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
+  inset: 0,
   background:
-    "linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0) 100%)",
-  zIndex: 1,
-});
+    "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, rgba(0,0,0,0) 100%)",
+  zIndex: 2,
+}));
 
-// Fisher–Yates shuffle
-function shuffleArray<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const Content = styled(Box)(({ theme }) => ({
+  position: "absolute",
+  bottom: theme.spacing(4),
+  left: theme.spacing(4),
+  width: "40%",
+  maxWidth: 700,
+  zIndex: 3,
+  [theme.breakpoints.down("md")]: {
+    width: "60%",
+    left: theme.spacing(2),
+    bottom: theme.spacing(2),
+  },
+}));
 
-const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
-  // shuffle once on mount
-  const [slides] = useState<BannerMedia[]>(() => shuffleArray(items));
+export default function HeroCarousel({ items }: HeroCarouselProps) {
+  const [slides] = useState(() => [...items].sort(() => Math.random() - 0.5));
   const [idx, setIdx] = useState(0);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const timerRef = useRef<number>();
+  const theme = useTheme();
   const notify = useNotify();
   const navigate = useNavigate();
-  const timerRef = useRef<number>();
 
   const current = slides[idx];
   const { inWatchlist, toggle } = useWatchlist(
@@ -102,13 +105,13 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
 
   useEffect(() => {
     window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(next, 8000);
+    timerRef.current = window.setTimeout(next, 7000);
     return () => window.clearTimeout(timerRef.current);
   }, [idx, slides.length]);
 
   const handlePlay = async () => {
+    const path = current.resourceType === "movie" ? "movies" : "shows";
     try {
-      const path = current.resourceType === "movie" ? "movies" : "shows";
       const { data } = await axios.get<{ results: any[] }>(
         `/api/${path}/${current.id}/videos`
       );
@@ -121,7 +124,7 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
       } else {
         notify({ message: "No trailer available", severity: "info" });
       }
-    } catch {
+    } catch (err) {
       notify({ message: "Could not load trailer", severity: "error" });
     }
   };
@@ -138,6 +141,18 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
     }
   };
 
+  const iconButtonStyle = {
+    bgcolor: "rgba(0,0,0,0.5)",
+    width: 48,
+    height: 48,
+    "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+    color: "#fff",
+    position: "absolute" as const,
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 5,
+  };
+
   return (
     <CarouselRoot>
       {slides.map((item, i) => (
@@ -145,67 +160,106 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
           key={item.id}
           bg={`https://image.tmdb.org/t/p/original${item.backdrop_path}`}
           className={i === idx ? "active" : ""}
-        >
-          <FadeOverlay />
-          {i === idx && (
-            <Content>
-              <Typography variant="h3" gutterBottom>
-                {item.title}
-              </Typography>
-              <Typography variant="body1" paragraph>
-                {item.overview.length > 200
-                  ? item.overview.slice(0, 200) + "…"
-                  : item.overview}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<PlayArrow />}
-                  onClick={handlePlay}
-                >
-                  Play
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<InfoOutlined />}
-                  onClick={() => navigate(`/${item.resourceType}/${item.id}`)}
-                >
-                  More Info
-                </Button>
-                <IconButton sx={{ color: "#fff" }} onClick={handleWatchToggle}>
-                  {inWatchlist ? <Bookmark /> : <BookmarkBorder />}
-                </IconButton>
-              </Box>
-            </Content>
-          )}
-        </Slide>
+        />
       ))}
 
+      <FadeOverlay />
+
+      <Content>
+        <Typography
+          variant="h3"
+          sx={{
+            fontWeight: 700,
+            mb: 2,
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            display: "-webkit-box",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineHeight: 1.2,
+          }}
+        >
+          {current.title}
+        </Typography>
+
+        <Typography
+          variant="body1"
+          paragraph
+          sx={{
+            maxHeight: "4.8em",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+          }}
+        >
+          {current.overview}
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<PlayArrow />}
+            onClick={handlePlay}
+            sx={{
+              borderRadius: "24px",
+              px: 3,
+              py: 1,
+              fontWeight: 600,
+            }}
+          >
+            Trailer
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="inherit"
+            startIcon={<InfoOutlined />}
+            onClick={() => navigate(`/${current.resourceType}/${current.id}`)}
+            sx={{
+              borderRadius: "24px",
+              px: 3,
+              py: 1,
+              borderColor: "rgba(255,255,255,0.8)",
+              color: "rgba(255,255,255,0.9)",
+              "&:hover": { backgroundColor: "rgba(255,255,255,0.2)" },
+            }}
+          >
+            More Info
+          </Button>
+
+          <Button
+            variant={inWatchlist ? "contained" : "outlined"}
+            startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
+            onClick={handleWatchToggle}
+            sx={{
+              borderRadius: "24px",
+              px: 3,
+              py: 1,
+              color: "#fff",
+              borderColor: "rgba(255,255,255,0.8)",
+              backgroundColor: inWatchlist
+                ? "rgba(255,255,255,0.3)"
+                : "transparent",
+              "&:hover": { backgroundColor: "rgba(255,255,255,0.4)" },
+            }}
+          >
+            {inWatchlist ? "In Watchlist" : "Watchlist"}
+          </Button>
+        </Box>
+      </Content>
+
       <IconButton
-        onClick={() => {
-          prev();
-        }}
-        sx={{
-          position: "absolute",
-          left: 16,
-          top: "50%",
-          color: "#fff",
-          zIndex: 3,
-        }}
+        onClick={prev}
+        sx={{ ...iconButtonStyle, left: theme.spacing(2) }}
       >
         <ArrowBackIos />
       </IconButton>
+
       <IconButton
-        onClick={() => {
-          next();
-        }}
-        sx={{
-          position: "absolute",
-          right: 16,
-          top: "50%",
-          color: "#fff",
-          zIndex: 3,
-        }}
+        onClick={next}
+        sx={{ ...iconButtonStyle, right: theme.spacing(2) }}
       >
         <ArrowForwardIos />
       </IconButton>
@@ -217,6 +271,4 @@ const HeroCarousel: React.FC<HeroCarouselProps> = ({ items }) => {
       />
     </CarouselRoot>
   );
-};
-
-export default HeroCarousel;
+}

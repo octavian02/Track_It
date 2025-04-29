@@ -8,12 +8,14 @@ import TrailerDialog from "./TrailerDialog";
 import ImageWithFallback from "./ImageWithFallback";
 import { useWatchlist } from "../hooks/useWatchlist";
 import { useNotify } from "../components/NotificationsContext";
+import { Typography } from "@mui/material";
 
 interface Show {
   id: number;
   name: string;
   poster_path: string;
   vote_average: number;
+  first_air_date?: string;
 }
 
 interface ShowCardProps {
@@ -75,7 +77,26 @@ const ShowCard: React.FC<ShowCardProps> = ({ show }) => {
           />
         </Link>
         <div className="movie-details">
-          <h3 className="movie-title">{show.name}</h3>
+          <Typography
+            sx={{
+              fontSize: "1rem",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: "1.2em",
+              height: "calc(1.2em * 2)",
+              margin: 0,
+            }}
+          >
+            {show.name}
+          </Typography>
+          {show.first_air_date && (
+            <span className="movie-year" style={{ fontSize: "0.8em" }}>
+              {" (" + new Date(show.first_air_date).getFullYear() + ")"}
+            </span>
+          )}
           <div className="movie-rating">
             <StarIcon className="star-icon" />
             <span>{show.vote_average.toFixed(1)}</span>

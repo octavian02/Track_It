@@ -8,12 +8,14 @@ import TrailerDialog from "./TrailerDialog";
 import ImageWithFallback from "./ImageWithFallback";
 import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { Tooltip, Typography } from "@mui/material";
 
 interface Movie {
   id: number;
   title: string;
   poster_path: string;
   vote_average: number;
+  release_date?: string;
 }
 
 interface MovieCardProps {
@@ -80,7 +82,27 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
           />
         </Link>
         <div className="movie-details">
-          <h3 className="movie-title">{movie.title}</h3>
+          <Typography
+            sx={{
+              fontSize: "1rem",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              lineHeight: "1.2em",
+              height: "calc(1.2em * 2)",
+              margin: 0,
+            }}
+          >
+            {movie.title}
+          </Typography>
+          {movie.release_date && (
+            <span className="movie-year" style={{ fontSize: "0.8em" }}>
+              {" (" + new Date(movie.release_date).getFullYear() + ")"}
+            </span>
+          )}
+
           <div className="movie-rating">
             <StarIcon className="star-icon" />
             <span>{movie.vote_average.toFixed(1)}</span>

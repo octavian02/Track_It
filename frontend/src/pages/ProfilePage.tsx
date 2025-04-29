@@ -52,6 +52,7 @@ interface MediaItem {
   posterUrl?: string;
   tmdbRating?: number;
   userScore?: number;
+  mediaDate?: number;
 }
 
 export default function ProfilePage() {
@@ -115,6 +116,7 @@ export default function ProfilePage() {
         if (!mounted) return;
         const enriched: MediaItem[] = await Promise.all(
           res.data.map(async (item: any) => {
+            console.log(res.data);
             const userScore = item.score;
             const endpoint = item.mediaType === "movie" ? "movies" : "shows";
             const { data: details } = await axios.get<any>(

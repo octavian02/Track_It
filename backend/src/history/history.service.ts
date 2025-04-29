@@ -35,7 +35,6 @@ export class HistoryService {
     return this.repo.save(item);
   }
 
-  /** Unmark a movie as watched */
   async unmarkMovie(user: User, movieId: number) {
     await this.repo.delete({
       user: { id: user.id },

@@ -206,57 +206,101 @@ const MovieDetails: React.FC = () => {
             </Tooltip>
           </Box>
 
-          <Box sx={{ mt: 3 }}>
-            <ButtonGroup
-              size="large"
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: 2,
+              gap: 2,
+            }}
+          >
+            <Button
+              size="medium"
+              variant="contained"
+              color="secondary"
+              startIcon={<PlayArrowIcon />}
+              onClick={() => setDialogOpen(true)}
               sx={{
-                "& .MuiButton-root": {
-                  borderRadius: 3,
-                  textTransform: "none",
-                  px: 3,
-                  py: 1.5,
-                  fontWeight: 600,
-                  boxShadow: 2,
-                  "&:hover": { boxShadow: 6 },
-                  minWidth: 160,
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: "#f50057",
                 },
               }}
             >
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<PlayArrowIcon />}
-                onClick={() => setDialogOpen(true)}
-              >
-                Trailer
-              </Button>
-              <Button
-                variant={watched ? "contained" : "outlined"}
-                color={watched ? "success" : "primary"}
-                startIcon={watched ? <CheckIcon /> : <WatchLaterIcon />}
-                onClick={async () => {
-                  const res = await toggleWatched(movie.title);
-                  if (!res.success) {
-                    notify({
-                      message: "Could not update history",
-                      severity: "error",
-                    });
-                  }
-                }}
-              >
-                {watched ? "Watched" : "Mark as Watched"}
-              </Button>
-              <Button
-                variant={inWatchlist ? "contained" : "outlined"}
-                color={inWatchlist ? "warning" : "info"}
-                startIcon={
-                  inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
+              Trailer
+            </Button>
+            <Button
+              size="medium"
+              variant={inWatchlist ? "contained" : "outlined"}
+              color={inWatchlist ? "warning" : "info"}
+              startIcon={
+                inWatchlist ? <FavoriteIcon /> : <FavoriteBorderIcon />
+              }
+              onClick={handleWatchlist}
+              sx={{
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: inWatchlist ? "#f57c00" : "#00acc1",
+                  borderColor: inWatchlist ? "#f57c00" : "#00838f",
+                },
+                borderColor: inWatchlist ? "#ff9800" : "#00bcd4",
+              }}
+            >
+              {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
+            </Button>
+            <Button
+              size="medium"
+              variant={watched ? "contained" : "outlined"}
+              color={watched ? "success" : "primary"}
+              startIcon={watched ? <CheckIcon /> : <WatchLaterIcon />}
+              onClick={async () => {
+                const res = await toggleWatched(movie.title);
+                if (!res.success) {
+                  notify({
+                    message: "Could not update history",
+                    severity: "error",
+                  });
                 }
-                onClick={handleWatchlist}
-              >
-                {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
-              </Button>
-            </ButtonGroup>
+              }}
+              sx={{
+                borderRadius: "24px",
+                px: 3,
+                py: 1,
+                fontWeight: 600,
+                boxShadow: 2,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  boxShadow: 6,
+                  transform: "scale(1.05)",
+                  backgroundColor: watched ? "#388e3c" : "#3f51b5",
+                  borderColor: watched ? "#388e3c" : "#303f9f",
+                },
+                minWidth: 140,
+                borderColor: watched ? "#4caf50" : "#3f51b5",
+                borderWidth: 2,
+                borderStyle: "solid",
+                "&:focus": {
+                  outline: "none",
+                },
+              }}
+            >
+              {watched ? "Watched" : "Mark as Watched"}
+            </Button>
           </Box>
         </Box>
       </Box>
