@@ -39,7 +39,7 @@ export class RatingsService {
     });
   }
 
-  async getUserRatings(user: User) {
-    return this.repo.find({ where: { user: { id: user.id } } });
+  async getRatingsForUser(userId: number) {
+    return this.repo.find({ where: { user: { id: userId } } });
   }
 }

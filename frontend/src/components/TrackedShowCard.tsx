@@ -12,12 +12,14 @@ import {
   MenuItem,
   Box,
   CircularProgress,
+  Link as MuiLink,
 } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import HistoryIcon from "@mui/icons-material/History";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTrackedShow } from "../hooks/useTrackedShow";
+import { Link } from "react-router-dom";
 
 interface Props {
   entryId: number;
@@ -90,8 +92,7 @@ export default function TrackedShowCard({
     lastSeason,
     episodesLeft,
   } = show;
-
-  // Menu handlers
+  console.log(show);
   const openMenu = (e: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(e.currentTarget);
   const closeMenu = () => setAnchorEl(null);
@@ -115,13 +116,14 @@ export default function TrackedShowCard({
     <Card
       sx={{ bgcolor: "#1f1f1f", color: "#fff", borderRadius: 2, boxShadow: 2 }}
     >
-      <CardMedia
-        component="img"
-        height="220"
-        image={posterUrl}
-        alt={showName}
-      />
-
+      <MuiLink component={Link} to={`/tv/${showId}`} underline="none">
+        <CardMedia
+          component="img"
+          height="220"
+          image={posterUrl}
+          alt={showName}
+        />
+      </MuiLink>
       <CardContent>
         <Typography variant="h6" noWrap>
           {showName}

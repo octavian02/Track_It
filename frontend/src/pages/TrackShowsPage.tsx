@@ -46,7 +46,7 @@ export default function TrackShowsPage() {
       // 1) load tracking entries
       const { data: list } = await axios.get<TrackingEntry[]>("/api/tracking");
       setEntries(list);
-
+      console.log(list);
       // 2) build upcoming list
       const upcomingList: UpcomingShow[] = [];
       await Promise.all(

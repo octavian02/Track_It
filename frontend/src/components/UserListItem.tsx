@@ -16,14 +16,19 @@ interface UserSummary {
   avatarUrl?: string; // server-provided fallback
 }
 
-function UserListItem({ user }: { user: UserSummary }) {
+interface UserListItemProps {
+  user: UserSummary;
+  onClick?: () => void;
+}
+
+function UserListItem({ user, onClick }: UserListItemProps) {
   const { url, loading } = useAvatar(user.id);
 
   return (
     <ListItemButton
       component={Link}
       to={`/user/${user.username}/profile`}
-      key={user.id}
+      onClick={onClick} // ← now closes dialog
     >
       <ListItemAvatar>
         {loading ? (

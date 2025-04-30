@@ -27,7 +27,7 @@ export class WatchlistService {
     return { removed: true };
   }
 
-  async getWatchlist(user: User) {
-    return this.repo.find({ where: { user: { id: user.id } } });
+  async getWatchlistForUser(userId: number) {
+    return this.repo.find({ where: { user: { id: userId } } });
   }
 }

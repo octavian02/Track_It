@@ -33,6 +33,8 @@ import CommunityPage from "./pages/CommunityPage";
 import ProfilePage from "./pages/ProfilePage";
 import ShowSeasons from "./pages/ShowSeasons";
 import TrackShowsPage from "./pages/TrackShowsPage";
+import WatchlistPage from "./pages/WatchlistPage";
+import RatingsPage from "./pages/RatingsPage";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -68,6 +70,10 @@ const router = createBrowserRouter(
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/user/:username/profile" element={<ProfilePage />} />
         <Route path="/track" element={<TrackShowsPage />} />
+        <Route path="/watchlist" element={<WatchlistPage />} />
+        <Route path="/user/:username/watchlist" element={<WatchlistPage />} />
+        <Route path="/ratings" element={<RatingsPage />} />
+        <Route path="/user/:username/ratings" element={<RatingsPage />} />
       </Route>
     </>
   )

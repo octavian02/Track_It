@@ -36,6 +36,11 @@ export class ShowsController {
     return await this.showsService.getDetails(+id);
   }
 
+  @Get(':id/similar')
+  async getSimilar(@Param('id') id: string) {
+    return this.showsService.getSimilarShows(+id);
+  }
+
   @Get(':id/credits')
   async getCredits(@Param('id') id: string) {
     return await this.showsService.getCredits(+id);

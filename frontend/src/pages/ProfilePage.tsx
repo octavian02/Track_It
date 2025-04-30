@@ -26,6 +26,8 @@ import {
   Fade,
   Skeleton,
   Tooltip,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import { Star as StarIcon } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,6 +36,7 @@ import Cropper from "react-easy-crop";
 import { getCroppedImg } from "../utils/cropImage";
 import ImageWithFallback from "../components/ImageWithFallback";
 import { useAvatar } from "../hooks/useAvatar";
+import FollowListDialog from "../components/FollowListDialog";
 
 interface Profile {
   id: number;
@@ -53,6 +56,7 @@ interface MediaItem {
   tmdbRating?: number;
   userScore?: number;
   mediaDate?: number;
+  dateAdded: Date;
 }
 
 export default function ProfilePage() {
@@ -62,7 +66,6 @@ export default function ProfilePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isOwn = username === "me" || username === user?.username;
-
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
@@ -79,7 +82,15 @@ export default function ProfilePage() {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-  const { url: avatarUrl, loading: avatarLoading } = useAvatar(user?.id);
+  const { url: avatarUrl, loading: avatarLoading } = useAvatar(profile?.id);
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
+  const [followers, setFollowers] = useState<Profile[]>([]);
+  const [following, setFollowing] = useState<Profile[]>([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const PREVIEW_COUNT = 6;
+  const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "tv">("all");
 
   const onCropComplete = useCallback((_: any, pixels: any) => {
     setCroppedAreaPixels(pixels);
@@ -104,35 +115,33 @@ export default function ProfilePage() {
   }, [username, isOwn]);
 
   useEffect(() => {
-    if (!isOwn) return;
-
+    if (!profile) return;
     let mounted = true;
     setTabLoading(true);
 
-    const apiPath = tab === 0 ? "/api/watchlist" : "/api/ratings";
+    const base = tab === 0 ? "watchlist" : "ratings";
+    const apiUrl = `/api/${base}?userId=${profile.id}`;
+
     axios
-      .get<any[]>(apiPath)
+      .get<any[]>(apiUrl)
       .then(async (res) => {
         if (!mounted) return;
         const enriched: MediaItem[] = await Promise.all(
           res.data.map(async (item: any) => {
-            console.log(res.data);
-            const userScore = item.score;
-            const endpoint = item.mediaType === "movie" ? "movies" : "shows";
+            const kind = item.mediaType === "movie" ? "movies" : "shows";
             const { data: details } = await axios.get<any>(
-              `/api/${endpoint}/${item.mediaId}`
+              `/api/${kind}/${item.mediaId}`
             );
-            const posterPath = details.poster_path;
-            const tmdbRating = details.vote_average;
             return {
               mediaId: item.mediaId,
               mediaName: item.mediaName,
               mediaType: item.mediaType,
-              posterUrl: posterPath
-                ? `https://image.tmdb.org/t/p/w300${posterPath}`
+              posterUrl: details.poster_path
+                ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
                 : "/default-movie-poster.png",
-              tmdbRating,
-              userScore,
+              tmdbRating: details.vote_average,
+              userScore: item.score,
+              dateAdded: new Date(item.dateAdded),
             };
           })
         );
@@ -144,7 +153,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [tab, isOwn]);
+  }, [tab, profile?.id]);
 
   const handleEditOpen = () => {
     if (!profile) return;
@@ -172,6 +181,7 @@ export default function ProfilePage() {
       }));
     }
   };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -196,6 +206,75 @@ export default function ProfilePage() {
     }
   };
 
+  const loadFollowers = useCallback(async () => {
+    if (!profile) return;
+    setLoadingFollowers(true);
+    try {
+      const { data } = await axios.get<Profile[]>(
+        `/api/user/${profile.id}/followers`
+      );
+      setFollowers(data);
+    } catch (err) {
+      console.error("Failed to load followers", err);
+      notify({ message: "Could not load followers", severity: "error" });
+    } finally {
+      setLoadingFollowers(false);
+    }
+  }, [profile, notify]);
+
+  const loadFollowing = useCallback(async () => {
+    if (!profile) return;
+    setLoadingFollowing(true);
+    try {
+      const { data } = await axios.get<Profile[]>(
+        `/api/user/${profile.id}/following`
+      );
+      setFollowing(data);
+    } catch (err) {
+      console.error("Failed to load following", err);
+      notify({ message: "Could not load following", severity: "error" });
+    } finally {
+      setLoadingFollowing(false);
+    }
+  }, [profile, notify]);
+
+  const handleFollowToggle = useCallback(async () => {
+    if (!profile) return;
+    try {
+      if (profile.isFollowing) {
+        // Unfollow
+        await axios.delete(`/api/user/${profile.id}/follow`);
+        setProfile({
+          ...profile,
+          isFollowing: false,
+          followersCount: profile.followersCount - 1,
+        });
+        notify({
+          message: `You unfollowed ${profile.displayName}`,
+          severity: "info",
+        });
+      } else {
+        // Follow
+        await axios.post(`/api/user/${profile.id}/follow`);
+        setProfile({
+          ...profile,
+          isFollowing: true,
+          followersCount: profile.followersCount + 1,
+        });
+        notify({
+          message: `You are now following ${profile.displayName}`,
+          severity: "success",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      notify({
+        message: `Could not ${profile.isFollowing ? "unfollow" : "follow"} user`,
+        severity: "error",
+      });
+    }
+  }, [profile, notify]);
+
   if (loading || !profile) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 8 }}>
@@ -203,6 +282,13 @@ export default function ProfilePage() {
       </Box>
     );
   }
+  const sorted = [...mediaList].sort(
+    (a, b) => b.dateAdded.getTime() - a.dateAdded.getTime()
+  );
+  const filtered = sorted.filter(
+    (m) => typeFilter === "all" || m.mediaType === typeFilter
+  );
+  const preview = filtered.slice(0, PREVIEW_COUNT);
 
   return (
     <Container sx={{ py: 4 }}>
@@ -253,15 +339,44 @@ export default function ProfilePage() {
             justifyContent={isMobile ? "center" : "flex-start"}
             gap={4}
           >
-            <Typography>
-              <strong>{profile.followersCount}</strong> Followers
-            </Typography>
-            <Typography>
-              <strong>{profile.followingCount}</strong> Following
-            </Typography>
+            <Box mt={2} display="flex" gap={4}>
+              <Typography
+                sx={{ cursor: "pointer" }}
+                onClick={() => {
+                  setFollowersOpen(true);
+                  loadFollowers();
+                }}
+              >
+                <strong>{profile.followersCount}</strong> Followers
+              </Typography>
+              <Typography
+                sx={{ cursor: "pointer" }}
+                onClick={() => {
+                  setFollowingOpen(true);
+                  loadFollowing();
+                }}
+              >
+                <strong>{profile.followingCount}</strong> Following
+              </Typography>
+              <FollowListDialog
+                open={followersOpen}
+                title="Followers"
+                loading={loadingFollowers}
+                users={followers}
+                onClose={() => setFollowersOpen(false)}
+              />
+
+              <FollowListDialog
+                open={followingOpen}
+                title="Following"
+                loading={loadingFollowing}
+                users={following}
+                onClose={() => setFollowingOpen(false)}
+              />
+            </Box>
           </Box>
         </Box>
-        {isOwn && (
+        {isOwn ? (
           <Button
             variant="outlined" // was "contained"
             onClick={handleEditOpen}
@@ -276,6 +391,14 @@ export default function ProfilePage() {
             }}
           >
             Edit Profile
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={handleFollowToggle}
+            sx={{ alignSelf: isMobile ? "center" : "flex-start" }}
+          >
+            {profile.isFollowing ? "Unfollow" : "Follow"}
           </Button>
         )}
       </Paper>
@@ -352,37 +475,73 @@ export default function ProfilePage() {
       </Dialog>
 
       {/* TABS & MEDIA GRID */}
-      {isOwn && (
-        <>
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
-            indicatorColor="primary"
-            textColor="primary"
-            sx={{ mb: 3 }}
-          >
-            <Tab label="Watchlist" />
-            <Tab label="Ratings" />
-          </Tabs>
+      <>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          indicatorColor="primary"
+          textColor="primary"
+          sx={{ mb: 3 }}
+        >
+          <Tab label="Watchlist" />
+          <Tab label="Ratings" />
+        </Tabs>
 
-          {tabLoading ? (
-            <Grid container spacing={2}>
-              {Array.from(new Array(12)).map((_, idx) => (
-                <Grid key={idx} item xs={6} sm={4} md={3} lg={2}>
-                  <Card>
-                    <Skeleton variant="rectangular" height={240} />
-                    <CardContent>
-                      <Skeleton width="80%" />
-                      <Skeleton width="60%" />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          ) : (
+        {tabLoading ? (
+          // your existing skeleton loader
+          <Grid container spacing={2}>
+            {Array.from(new Array(12)).map((_, idx) => (
+              <Grid key={idx} item xs={6} sm={4} md={3} lg={2}>
+                <Card>
+                  <Skeleton variant="rectangular" height={240} />
+                  <CardContent>
+                    <Skeleton width="80%" />
+                    <Skeleton width="60%" />
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : mediaList.length === 0 ? (
+          // your existing empty‐state box
+          <Box textAlign="center" py={6}>
+            <Typography variant="h6" color="text.secondary">
+              {tab === 0
+                ? isOwn
+                  ? "Your watchlist is empty"
+                  : "This user’s watchlist is empty"
+                : isOwn
+                  ? "You haven’t rated anything yet"
+                  : "This user hasn’t rated anything yet"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={1}>
+              {tab === 0
+                ? isOwn
+                  ? "Start exploring and add titles to your watchlist!"
+                  : "Encourage them to add titles to their watchlist"
+                : isOwn
+                  ? "Go ahead and review some movies or shows you’ve seen"
+                  : "Maybe suggest they share their opinions by rating something"}
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <Box mb={2} display="flex" justifyContent="center" gap={1}>
+              <ToggleButtonGroup
+                value={typeFilter}
+                exclusive
+                onChange={(_, v) => v && setTypeFilter(v)}
+                size="small"
+              >
+                <ToggleButton value="all">All</ToggleButton>
+                <ToggleButton value="movie">Movies</ToggleButton>
+                <ToggleButton value="tv">TV Shows</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            {/* Preview of the first N items */}
             <Fade in timeout={500} key={tab}>
               <Grid container spacing={2}>
-                {mediaList.map((item) => (
+                {preview.map((item) => (
                   <Grid key={item.mediaId} item xs={6} sm={4} md={3} lg={2}>
                     <Card
                       sx={{
@@ -441,9 +600,29 @@ export default function ProfilePage() {
                 ))}
               </Grid>
             </Fade>
-          )}
-        </>
-      )}
+
+            {mediaList.length > PREVIEW_COUNT && (
+              <Box textAlign="center" mt={3}>
+                <Button
+                  component={Link}
+                  variant="outlined"
+                  to={
+                    tab === 0
+                      ? isOwn
+                        ? "/watchlist"
+                        : `/user/${profile.username}/watchlist`
+                      : isOwn
+                        ? "/ratings"
+                        : `/user/${profile.username}/ratings`
+                  }
+                >
+                  See all {tab === 0 ? "watchlist" : "ratings"}
+                </Button>
+              </Box>
+            )}
+          </>
+        )}
+      </>
     </Container>
   );
 }

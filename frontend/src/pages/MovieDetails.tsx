@@ -1,12 +1,11 @@
 // src/pages/MovieDetails.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   Box,
   Typography,
   Button,
-  ButtonGroup,
   Rating,
   Tooltip,
   Dialog,
@@ -25,6 +24,9 @@ import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
 import { useWatchedMovie } from "../hooks/useHistory";
 import { useWatchlist } from "../hooks/useWatchlist";
 import "./MovieDetails.css";
+import HorizontalCarousel, {
+  CarouselItem,
+} from "../components/HorizontalCarousel";
 
 interface Genre {
   id: number;
@@ -52,6 +54,10 @@ interface MovieDetail {
   runtime: number;
   genres: Genre[];
   original_language: string;
+  belongs_to_collection?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 const MovieDetails: React.FC = () => {
@@ -65,7 +71,8 @@ const MovieDetails: React.FC = () => {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
-
+  const [recommendations, setRecommendations] = useState<CarouselItem[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
   const notify = useNotify();
   const movieId = Number(id);
   const { watched, toggle: toggleWatched } = useWatchedMovie(movieId);
@@ -93,7 +100,7 @@ const MovieDetails: React.FC = () => {
 
         const full = creditsRes.data.cast;
         setAllCast(full);
-        setCast(full.slice(0, 8));
+        setCast(full.slice(0, 9));
         setDirector(creditsRes.data.crew.filter((c) => c.job === "Director"));
         setWriters(
           creditsRes.data.crew.filter((c) =>
@@ -111,6 +118,58 @@ const MovieDetails: React.FC = () => {
       }
     })();
   }, [id]);
+
+  useEffect(() => {
+    if (!movie) return;
+    let mounted = true;
+    setLoadingRecs(true);
+
+    const coll$ = movie.belongs_to_collection
+      ? axios.get<{ parts: any[] }>(
+          `/api/movies/collection/${movie.belongs_to_collection.id}`
+        )
+      : Promise.resolve({ data: { parts: [] } });
+
+    const rec$ = axios.get<{ results: any[] }>(`/api/movies/${id}/similar`);
+
+    Promise.all([coll$, rec$])
+      .then(([colRes, recRes]) => {
+        if (!mounted) return;
+
+        // 1) collection entries, excluding the current movie
+        const collItems: CarouselItem[] = colRes.data.parts
+          .filter((p) => p.id !== movie.id)
+          .map((p) => ({
+            id: p.id,
+            title: p.title,
+            poster_path: p.poster_path,
+            vote_average: p.vote_average,
+            release_date: p.release_date,
+            resourceType: "movie",
+          }));
+
+        const recItems: CarouselItem[] = recRes.data.results
+          .filter(
+            (r) => r.id !== movie.id && !collItems.some((c) => c.id === r.id)
+          )
+          .map((r) => ({
+            id: r.id,
+            title: r.title,
+            poster_path: r.poster_path,
+            vote_average: r.vote_average,
+            release_date: r.release_date,
+            resourceType: "movie",
+          }));
+
+        setRecommendations([...collItems, ...recItems]);
+      })
+      .catch((err) => console.error("Recs fetch failed:", err))
+      .finally(() => mounted && setLoadingRecs(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, [movie, id]);
 
   const onRatingChange = async (_: any, newVal: number | null) => {
     if (newVal == null || !movie) return;
@@ -335,7 +394,11 @@ const MovieDetails: React.FC = () => {
           ))}
         </Box>
       </section>
-
+      <HorizontalCarousel
+        title="Similar Movies"
+        loading={loadingRecs}
+        items={recommendations}
+      />
       {/* Trailer Dialog */}
       <TrailerDialog
         open={dialogOpen}

@@ -55,5 +55,14 @@ export class MoviesService {
     const { data } = await axios.get(url);
     return data;
   }
-  c;
+
+  async getSimilarMovies(movieId: number) {
+    const { data } = await this.client.get(`/movie/${movieId}/similar`);
+    return data; // this contains a `results: any[]` array
+  }
+
+  async getCollection(collectionId: number) {
+    const { data } = await this.client.get(`/collection/${collectionId}`);
+    return data; // includes data.parts: TMDB’s array of all movies in that collection
+  }
 }

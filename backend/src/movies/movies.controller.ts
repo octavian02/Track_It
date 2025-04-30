@@ -26,6 +26,11 @@ export class MoviesController {
     return await this.moviesService.getUpcoming();
   }
 
+  @Get('collection/:id')
+  async getCollection(@Param('id') id: string) {
+    return this.moviesService.getCollection(+id);
+  }
+
   @Get(':id/videos')
   async getVideos(@Param('id') id: string) {
     return await this.moviesService.getMovieVideos(+id);
@@ -34,6 +39,11 @@ export class MoviesController {
   @Get(':id/credits')
   async getCredits(@Param('id') id: string) {
     return await this.moviesService.getCredits(+id);
+  }
+
+  @Get(':id/similar')
+  async getSimilar(@Param('id') id: string) {
+    return this.moviesService.getSimilarMovies(+id);
   }
 
   @Get(':id')

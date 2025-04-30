@@ -111,8 +111,9 @@ const Header: React.FC = () => {
             <UserMenu />
             <IconButton
               component={RouterLink}
-              to="/bookmarks"
+              to="/watchlist"
               sx={{ color: "#fff", ml: 1 }}
+              title="My Watchlist"
             >
               <BookmarkIcon />
             </IconButton>
@@ -120,7 +121,6 @@ const Header: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Drawer */}
       <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
         <Box
           sx={{ width: 250 }}
@@ -144,6 +144,12 @@ const Header: React.FC = () => {
                 <FilterListIcon />
               </ListItemIcon>
               <ListItemText primary="Advanced Search" />
+            </ListItemButton>
+            <ListItemButton component={RouterLink} to="/watchlist">
+              <ListItemIcon>
+                <BookmarkIcon />
+              </ListItemIcon>
+              <ListItemText primary="Watchlist" />
             </ListItemButton>
           </List>
         </Box>

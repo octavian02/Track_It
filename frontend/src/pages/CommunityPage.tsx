@@ -3,17 +3,10 @@ import {
   Box,
   TextField,
   List,
-  ListItemButton,
-  ListItemAvatar,
-  Avatar,
-  ListItemText,
   Typography,
   CircularProgress,
-  Skeleton,
 } from "@mui/material";
 import axios from "axios";
-import { Link } from "react-router-dom";
-import { useAvatar } from "../hooks/useAvatar";
 import UserListItem from "../components/UserListItem";
 
 interface UserSummary {

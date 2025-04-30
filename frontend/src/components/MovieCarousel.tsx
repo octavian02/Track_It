@@ -22,8 +22,9 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies }) => {
     dots: false,
     infinite: false,
     speed: 500,
+    arrows: true,
     slidesToShow: 5,
-    slidesToScroll: 5,
+    slidesToScroll: 3,
     responsive: [
       {
         breakpoint: 1024,
@@ -45,7 +46,9 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies }) => {
       <h2 className="carousel-heading">{title}</h2>
       <Slider {...settings}>
         {movies.map((movie) => (
-          <MovieCard key={movie.id} movie={movie} />
+          <div className="carousel-slide" key={movie.id}>
+            <MovieCard movie={movie} />
+          </div>
         ))}
       </Slider>
     </div>

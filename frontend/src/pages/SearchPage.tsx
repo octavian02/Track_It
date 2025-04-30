@@ -1,22 +1,30 @@
 // src/pages/SearchPage.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  OutlinedInput,
+  Paper,
+  Tabs,
+  Tab,
+  Autocomplete,
   TextField,
   Slider,
   Button,
   Grid,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Chip,
+  Select,
+  MenuItem,
+  IconButton,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-
+import {
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+} from "@mui/icons-material";
+import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import MovieCard from "../components/MovieCard";
 import ShowCard from "../components/ShowCard";
 
@@ -24,7 +32,6 @@ interface Genre {
   id: number;
   name: string;
 }
-
 interface BannerMedia {
   id: number;
   title?: string;
@@ -34,23 +41,40 @@ interface BannerMedia {
   poster_path?: string;
   vote_average?: number;
   resourceType: "movie" | "tv";
-  release_date?: string; // ← new
+  release_date?: string;
   first_air_date?: string;
 }
 
+const SORT_FIELDS = [
+  { label: "Popularity", value: "popularity" },
+  { label: "Rating", value: "vote_average" },
+  { label: "Release Date", value: "primary_release_date" },
+  { label: "A–Z", value: "title" },
+] as const;
+
 export default function SearchPage() {
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // --- FILTER STATE ---
   const [mediaType, setMediaType] = useState<"movie" | "tv">("movie");
   const [genres, setGenres] = useState<Genre[]>([]);
-  const [selectedGenres, setSelectedGenres] = useState<number[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [releaseFrom, setReleaseFrom] = useState<Date | null>(null);
   const [releaseTo, setReleaseTo] = useState<Date | null>(null);
   const [voteGte, setVoteGte] = useState<number>(0);
-  const [sortBy, setSortBy] = useState<string>("popularity.desc");
 
+  // --- SORT STATE ---
+  const [sortField, setSortField] = useState<
+    (typeof SORT_FIELDS)[number]["value"]
+  >(SORT_FIELDS[0].value);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  // --- RESULTS / LOADING ---
   const [results, setResults] = useState<BannerMedia[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch genres when mediaType changes
+  // fetch genre list when mediaType changes
   useEffect(() => {
     axios
       .get<Genre[]>("/api/search/genres", { params: { mediaType } })
@@ -58,13 +82,14 @@ export default function SearchPage() {
       .catch(() => setGenres([]));
   }, [mediaType]);
 
-  const handleSearch = async () => {
+  // the actual search call
+  const doSearch = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {
         mediaType,
-        genres: selectedGenres.join(","),
-        sortBy,
+        genres: selectedGenres.map((g) => g.id).join(","),
+        sortBy: `${sortField}.${sortDirection}`,
         voteGte,
       };
       if (releaseFrom)
@@ -75,101 +100,134 @@ export default function SearchPage() {
         "/api/search/discover",
         { params }
       );
-      console.log("Discover response", data);
-      const mapped = data.results.map((r) => ({
-        id: r.id,
-        title: r.title,
-        name: r.name,
-        overview: r.overview,
-        backdrop_path: r.backdrop_path,
-        poster_path: r.poster_path,
-        vote_average: r.vote_average,
-        resourceType: r.media_type,
-        release_date: r.release_date, // ← new
-        first_air_date: r.first_air_date,
-      }));
-      setResults(mapped);
-    } catch (err) {
-      console.error("Search discover failed", err);
-      // optional: show a Snackbar or Notification here
+      setResults(
+        data.results.map((r) => ({
+          id: r.id,
+          title: r.title,
+          name: r.name,
+          overview: r.overview,
+          backdrop_path: r.backdrop_path,
+          poster_path: r.poster_path,
+          vote_average: r.vote_average,
+          resourceType: mediaType,
+          release_date: r.release_date,
+          first_air_date: r.first_air_date,
+        }))
+      );
+    } catch (e) {
+      console.error("Search failed", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    mediaType,
+    selectedGenres,
+    releaseFrom,
+    releaseTo,
+    voteGte,
+    sortField,
+    sortDirection,
+  ]);
+
+  // debounce helper
+  function useDebouncedEffect(fn: () => void, deps: any[], delay = 300) {
+    useEffect(() => {
+      const handle = window.setTimeout(fn, delay);
+      return () => window.clearTimeout(handle);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [...deps]);
+  }
+
+  // fire the search whenever any filter or sort changes
+  useDebouncedEffect(doSearch, [
+    mediaType,
+    selectedGenres,
+    releaseFrom,
+    releaseTo,
+    voteGte,
+    sortField,
+    sortDirection,
+  ]);
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Advanced Search & Filtering
+    <Box sx={{ p: isSm ? 2 : 4 }}>
+      <Typography variant="h4" mb={2}>
+        Discover
       </Typography>
 
-      <Grid container spacing={2} alignItems="center">
-        {/* Media Type */}
+      <Paper
+        elevation={2}
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 2,
+          p: 2,
+          alignItems: "center",
+          mb: 4,
+          borderRadius: 3,
+        }}
+      >
+        {/* === media type tabs === */}
+        <Tabs
+          value={mediaType}
+          onChange={(_, v) => setMediaType(v)}
+          textColor="primary"
+          indicatorColor="primary"
+          sx={{ minWidth: 120 }}
+        >
+          <Tab value="movie" label="Movie" />
+          <Tab value="tv" label="TV Show" />
+        </Tabs>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Type</InputLabel>
-            <Select
-              value={mediaType}
-              label="Type"
-              onChange={(e) => setMediaType(e.target.value as any)}
-            >
-              <MenuItem value="movie">Movie</MenuItem>
-              <MenuItem value="tv">TV Show</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* === genres multi-select === */}
+        <Autocomplete
+          multiple
+          options={genres}
+          getOptionLabel={(g) => g.name}
+          value={selectedGenres}
+          onChange={(_, v) => setSelectedGenres(v)}
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => (
+              <Chip
+                {...getTagProps({ index })}
+                label={option.name}
+                size="small"
+              />
+            ))
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="outlined"
+              label="Genres"
+              placeholder="Select genres"
+              sx={{ minWidth: 200 }}
+            />
+          )}
+          sx={{ flex: 1, minWidth: 200 }}
+        />
 
-        {/* Genres */}
-        <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Genres</InputLabel>
-            <Select
-              multiple
-              value={selectedGenres}
-              onChange={(e) => setSelectedGenres(e.target.value as number[])}
-              input={<OutlinedInput label="Genres" />}
-              renderValue={(vals) =>
-                genres
-                  .filter((g) => vals.includes(g.id))
-                  .map((g) => g.name)
-                  .join(", ")
-              }
-            >
-              {genres.map((g) => (
-                <MenuItem key={g.id} value={g.id}>
-                  {g.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* === date range pickers === */}
+        <DesktopDatePicker
+          label="From"
+          format="yyyy-MM-dd"
+          value={releaseFrom}
+          onChange={setReleaseFrom}
+          slots={{ textField: TextField }}
+          slotProps={{ textField: { sx: { width: 120 } } }}
+        />
+        <DesktopDatePicker
+          label="To"
+          format="yyyy-MM-dd"
+          value={releaseTo}
+          onChange={setReleaseTo}
+          slots={{ textField: TextField }}
+          slotProps={{ textField: { sx: { width: 120 } } }}
+        />
 
-        {/* Release Date Range */}
-        <Grid item xs={6} sm={3} md={2}>
-          <DatePicker
-            label="From"
-            value={releaseFrom}
-            onChange={(newVal) => setReleaseFrom(newVal)}
-            slots={{
-              textField: (params) => <TextField {...params} fullWidth />,
-            }}
-          />
-        </Grid>
-        <Grid item xs={6} sm={3} md={2}>
-          <DatePicker
-            label="To"
-            value={releaseTo}
-            onChange={(newVal) => setReleaseTo(newVal)}
-            slots={{
-              textField: (params) => <TextField {...params} fullWidth />,
-            }}
-          />
-        </Grid>
-
-        {/* Rating Slider */}
-        <Grid item xs={12} sm={6} md={2}>
-          <Typography gutterBottom>Rating ≥ {voteGte}</Typography>
+        {/* === rating slider === */}
+        <Box sx={{ width: 200, px: 1 }}>
+          <Typography variant="caption">Rating ≥ {voteGte}</Typography>
           <Slider
             value={voteGte}
             onChange={(_, v) => setVoteGte(v as number)}
@@ -178,57 +236,62 @@ export default function SearchPage() {
             step={0.5}
             valueLabelDisplay="auto"
           />
-        </Grid>
+        </Box>
 
-        {/* Sort By */}
-        <Grid item xs={12} sm={6} md={2}>
-          <FormControl fullWidth>
-            <InputLabel>Sort By</InputLabel>
-            <Select
-              value={sortBy}
-              label="Sort By"
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <MenuItem value="popularity.desc">Popularity ↓</MenuItem>
-              <MenuItem value="popularity.asc">Popularity ↑</MenuItem>
-              <MenuItem value="vote_average.desc">Rating ↓</MenuItem>
-              <MenuItem value="vote_average.asc">Rating ↑</MenuItem>
-              <MenuItem value="primary_release_date.desc">
-                Release Date ↓
+        {/* === dynamic sort control === */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Typography variant="body2" mr={1}>
+            Sort by
+          </Typography>
+          <Select
+            size="small"
+            value={sortField}
+            onChange={(e) =>
+              setSortField(
+                e.target.value as (typeof SORT_FIELDS)[number]["value"]
+              )
+            }
+            sx={{ mr: 0.5 }}
+          >
+            {SORT_FIELDS.map((f) => (
+              <MenuItem key={f.value} value={f.value}>
+                {f.label}
               </MenuItem>
-              <MenuItem value="primary_release_date.asc">
-                Release Date ↑
-              </MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Search Button */}
-        <Grid item xs={12}>
-          <Button variant="contained" size="large" onClick={handleSearch}>
-            Search
-          </Button>
-        </Grid>
-      </Grid>
-
-      {/* Results */}
-      <Box sx={{ mt: 4 }}>
-        {loading ? (
-          <CircularProgress />
-        ) : (
-          <Grid container spacing={2}>
-            {results.map((item) => (
-              <Grid key={item.id} item xs={6} sm={4} md={3} lg={2}>
-                {item.resourceType === "movie" ? (
-                  <MovieCard movie={item as any} />
-                ) : (
-                  <ShowCard show={item as any} />
-                )}
-              </Grid>
             ))}
-          </Grid>
-        )}
-      </Box>
+          </Select>
+          <IconButton
+            size="small"
+            onClick={() =>
+              setSortDirection((d) => (d === "desc" ? "asc" : "desc"))
+            }
+          >
+            {sortDirection === "desc" ? (
+              <ArrowDownwardIcon fontSize="small" />
+            ) : (
+              <ArrowUpwardIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Box>
+      </Paper>
+
+      {/* === results grid === */}
+      {loading ? (
+        <Box textAlign="center">
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={2}>
+          {results.map((item) => (
+            <Grid key={item.id} item xs={6} sm={4} md={3} lg={2}>
+              {item.resourceType === "movie" ? (
+                <MovieCard movie={item as any} />
+              ) : (
+                <ShowCard show={item as any} />
+              )}
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Box>
   );
 }

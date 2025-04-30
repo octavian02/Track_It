@@ -85,12 +85,22 @@ export function useTrackedShow(entryId: number, showId: number) {
             ?.name || "";
       }
 
+      const totalEpisodes = details.seasons
+        .filter((s) => s.season_number > 0)
+        .reduce((sum, s) => sum + s.episode_count, 0);
+
+      // 2) watched so far:
+      //    - all episodes in past seasons (excluding 0)
+      //    - plus the current episode
       let watchedTotal = entry.episodeNumber;
       details.seasons.forEach((s) => {
-        if (s.season_number < entry.seasonNumber)
+        if (s.season_number > 0 && s.season_number < entry.seasonNumber) {
           watchedTotal += s.episode_count;
+        }
       });
-      const episodesLeft = details.number_of_episodes - watchedTotal;
+
+      // 3) now subtract
+      const episodesLeft = totalEpisodes - watchedTotal;
 
       const posterUrl = details.poster_path
         ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
@@ -107,7 +117,7 @@ export function useTrackedShow(entryId: number, showId: number) {
         nextSeason,
         nextEpisode,
         nextEpisodeName: nextName,
-        totalEpisodes: details.number_of_episodes,
+        totalEpisodes,
         episodesLeft,
         nextAirDate: details.next_episode_to_air?.air_date || "",
       };

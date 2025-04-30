@@ -7,10 +7,12 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
 import { MediaType } from './rating.entity';
+import { RatingItemDto } from './dto/rating-item.dto';
 
 @Controller('ratings')
 @UseGuards(JwtAuthGuard)
@@ -18,8 +20,19 @@ export class RatingsController {
   constructor(private svc: RatingsService) {}
 
   @Get()
-  async list(@Request() req) {
-    return await this.svc.getUserRatings(req.user);
+  async list(
+    @Request() req,
+    @Query('userId') userId?: string,
+  ): Promise<RatingItemDto[]> {
+    const id = userId ? +userId : req.user.id;
+    const raw = await this.svc.getRatingsForUser(id);
+    return raw.map((r) => ({
+      mediaId: r.mediaId,
+      mediaName: r.mediaName,
+      mediaType: r.mediaType,
+      score: r.score,
+      dateAdded: r.ratedAt, // map ratedAt → dateAdded
+    }));
   }
 
   @Get(':mediaId')

@@ -88,7 +88,7 @@ const ShowDetails: React.FC = () => {
 
         setShow(showRes.data);
         setAllCast(creditsRes.data.cast);
-        setCast(creditsRes.data.cast.slice(0, 8));
+        setCast(creditsRes.data.cast.slice(0, 9));
         setCrew(creditsRes.data.crew);
 
         const trailer = videosRes.data.results.find(

@@ -187,4 +187,12 @@ export class ShowsService {
       this.handleError('getEpisodeDetail', err);
     }
   }
+  async getSimilarShows(tvId: number) {
+    try {
+      const { data } = await this.client.get(`/tv/${tvId}/similar`);
+      return data;
+    } catch (err) {
+      this.handleError('getSimilarShows', err);
+    }
+  }
 }
