@@ -25,6 +25,7 @@ export class TrackingService {
       seasonNumber: dto.seasonNumber || 1,
       episodeNumber: dto.episodeNumber || 0,
       nextAirDate: dto.nextAirDate ? new Date(dto.nextAirDate) : null,
+      paused: dto.paused ?? false,
     });
     return this.repo.save(item);
   }
@@ -34,9 +35,14 @@ export class TrackingService {
       where: { id, user: { id: user.id } },
     });
     if (!item) throw new NotFoundException('Tracking entry not found');
-    item.seasonNumber = dto.seasonNumber;
-    item.episodeNumber = dto.episodeNumber;
-    item.nextAirDate = dto.nextAirDate ? new Date(dto.nextAirDate) : null;
+    Object.assign(item, {
+      seasonNumber: dto.seasonNumber ?? item.seasonNumber,
+      episodeNumber: dto.episodeNumber ?? item.episodeNumber,
+      nextAirDate: dto.nextAirDate
+        ? new Date(dto.nextAirDate)
+        : item.nextAirDate,
+      paused: dto.paused ?? item.paused,
+    });
     return this.repo.save(item);
   }
 
@@ -65,7 +71,6 @@ export class TrackingService {
       where: { user: { id: user.id }, showId },
     });
     if (!item) {
-      // create new tracking if none exists
       item = this.repo.create({
         user,
         showId,
@@ -75,7 +80,6 @@ export class TrackingService {
         nextAirDate,
       });
     } else {
-      // only bump if this episode/season is ahead
       if (
         season > item.seasonNumber ||
         (season === item.seasonNumber && episode > item.episodeNumber)

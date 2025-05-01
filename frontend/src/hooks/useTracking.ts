@@ -1,4 +1,3 @@
-// src/hooks/useTracking.ts
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -8,64 +7,90 @@ export interface TrackingItem {
   showName: string;
   seasonNumber: number;
   episodeNumber: number;
-  nextAirDate: string | null;
+  paused: boolean;
 }
 
+/**
+ * Hook to manage tracking with pause/resume using a `paused` flag.
+ */
 export function useTracking(
   showId: number,
   showName: string
 ): {
   tracking: TrackingItem | null;
-  start: () => Promise<void>;
-  bump: () => Promise<void>;
-  stop: () => Promise<void>;
+  pausedEntry: TrackingItem | null;
+  start: () => Promise<TrackingItem>;
+  pause: () => Promise<void>;
   loading: boolean;
 } {
   const [tracking, setTracking] = useState<TrackingItem | null>(null);
+  const [pausedEntry, setPausedEntry] = useState<TrackingItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // on mount or whenever showId changes, fetch existing tracking entry
+  // Load existing entries (active vs paused)
   useEffect(() => {
+    let mounted = true;
     setLoading(true);
     axios
-      .get<TrackingItem[]>("/api/tracking")
+      .get<TrackingItem[]>("/api/tracking", { params: { showId } })
       .then((res) => {
-        const found = res.data.find((t) => t.showId === showId) || null;
-        setTracking(found);
+        if (!mounted) return;
+        const active =
+          res.data.find((t) => t.showId === showId && !t.paused) || null;
+        const paused =
+          res.data.find((t) => t.showId === showId && t.paused) || null;
+        setTracking(active);
+        setPausedEntry(paused);
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        // ignore
+      })
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
   }, [showId]);
 
-  // start at S1·E1
-  const start = async () => {
+  // Start or resume tracking
+  const start = async (): Promise<TrackingItem> => {
+    // If a paused entry exists, un-pause it
+    if (pausedEntry) {
+      const res = await axios.patch<TrackingItem>(
+        `/api/tracking/${pausedEntry.id}`,
+        {
+          paused: false,
+          seasonNumber: pausedEntry.seasonNumber,
+          episodeNumber: pausedEntry.episodeNumber,
+        }
+      );
+      setTracking(res.data);
+      setPausedEntry(null);
+      return res.data;
+    }
+    // Otherwise, create new
     const res = await axios.post<TrackingItem>("/api/tracking", {
       showId,
       showName,
       seasonNumber: 1,
-      episodeNumber: 1,
+      episodeNumber: 0,
+      paused: false,
     });
     setTracking(res.data);
+    return res.data;
   };
 
-  // bump to the next episode number
-  const bump = async () => {
+  // Pause tracking by setting paused=true
+  const pause = async (): Promise<void> => {
     if (!tracking) return;
-    const nextEp = tracking.episodeNumber + 1;
-    const res = await axios.patch<TrackingItem>(
-      `/api/tracking/${tracking.id}`,
-      {
-        seasonNumber: tracking.seasonNumber,
-        episodeNumber: nextEp,
-      }
-    );
-    setTracking(res.data);
-  };
-
-  const stop = async () => {
-    if (!tracking) return;
-    await axios.delete(`/api/tracking/${tracking.id}`);
+    await axios.patch(`/api/tracking/${tracking.id}`, {
+      paused: true,
+      seasonNumber: tracking.seasonNumber,
+      episodeNumber: tracking.episodeNumber,
+    });
+    // move to pausedEntry
+    setPausedEntry({ ...tracking, paused: true });
     setTracking(null);
   };
 
-  return { tracking, start, bump, stop, loading };
+  return { tracking, pausedEntry, start, pause, loading };
 }

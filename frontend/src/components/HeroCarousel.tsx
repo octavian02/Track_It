@@ -1,5 +1,5 @@
 // src/components/HeroCarousel.tsx
-import React, { useState, useEffect, useRef, MouseEvent } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   IconButton,
@@ -83,7 +83,7 @@ const Content = styled(Box)(({ theme }) => ({
   },
 }));
 
-export default function HeroCarousel({ items }: HeroCarouselProps) {
+function HeroCarousel({ items }: HeroCarouselProps) {
   const [slides] = useState(() => [...items].sort(() => Math.random() - 0.5));
   const [idx, setIdx] = useState(0);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
@@ -272,3 +272,5 @@ export default function HeroCarousel({ items }: HeroCarouselProps) {
     </CarouselRoot>
   );
 }
+
+export default HeroCarousel;

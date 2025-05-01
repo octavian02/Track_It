@@ -28,7 +28,7 @@ interface RawTmdbResult {
   popularity: number;
 }
 
-export default function SearchBar() {
+function SearchBar() {
   const [query, setQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [value, setValue] = useState<RawTmdbResult | null>(null);
@@ -192,3 +192,5 @@ export default function SearchBar() {
     />
   );
 }
+
+export default SearchBar;

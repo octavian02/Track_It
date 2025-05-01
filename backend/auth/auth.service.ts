@@ -23,7 +23,6 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const user = await this.users.validateUser(email, password);
     if (!user) return null;
-    // strip out password
     const { password: _, ...result } = user;
     return result;
   }

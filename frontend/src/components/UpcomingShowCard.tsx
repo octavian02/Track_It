@@ -17,7 +17,7 @@ interface Props {
   onClick: (showId: number) => void;
 }
 
-export default function UpcomingShowCard({ show, onClick }: Props) {
+function UpcomingShowCard({ show, onClick }: Props) {
   return (
     <Card
       onClick={() => onClick(show.showId)}
@@ -58,3 +58,5 @@ export default function UpcomingShowCard({ show, onClick }: Props) {
     </Card>
   );
 }
+
+export default UpcomingShowCard;

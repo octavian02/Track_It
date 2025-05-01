@@ -32,6 +32,9 @@ export class TrackingItem {
   @Column({ type: 'timestamp', nullable: true })
   nextAirDate: Date | null;
 
+  @Column({ default: false })
+  paused: boolean;
+
   @UpdateDateColumn()
   updatedAt: Date;
 }

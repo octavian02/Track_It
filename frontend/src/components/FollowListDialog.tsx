@@ -24,7 +24,7 @@ export interface FollowListDialogProps {
   onClose: () => void;
 }
 
-export default function FollowListDialog({
+function FollowListDialog({
   open,
   title,
   loading,
@@ -55,3 +55,5 @@ export default function FollowListDialog({
     </Dialog>
   );
 }
+
+export default FollowListDialog;

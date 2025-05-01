@@ -65,8 +65,6 @@ const HorizontalCarousel: React.FC<Props> = ({ title, loading, items }) => {
 
   return (
     <Box mt={6} px={2} overflow="hidden">
-      {" "}
-      {/* hide overflow */}
       <Typography variant="h5" mb={1}>
         {title}
       </Typography>
@@ -103,7 +101,6 @@ const HorizontalCarousel: React.FC<Props> = ({ title, loading, items }) => {
             />
           </IconButton>
 
-          {/* SCROLL STRIP */}
           <Box
             ref={ref}
             sx={{

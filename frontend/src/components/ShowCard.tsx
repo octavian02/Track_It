@@ -8,7 +8,6 @@ import { useNotify } from "../components/NotificationsContext";
 import {
   Card,
   CardActionArea,
-  CardContent,
   CardActions,
   IconButton,
   Tooltip,

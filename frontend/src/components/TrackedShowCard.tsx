@@ -20,11 +20,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTrackedShow } from "../hooks/useTrackedShow";
 import { Link } from "react-router-dom";
+import { useNotify } from "../components/NotificationsContext";
 
 interface Props {
   entryId: number;
   showId: number;
   onViewHistory: (showId: number, showName: string) => void;
+  paused?: boolean;
+  onResume?: () => void;
   onRemoved: (entryId: number) => void;
   onMutate: (updated: {
     entryId: number;
@@ -36,17 +39,18 @@ interface Props {
 export default function TrackedShowCard({
   entryId,
   showId,
+  paused = false,
+  onResume,
   onViewHistory,
   onRemoved,
   onMutate,
 }: Props) {
-  // 1) Hooks at the top
+  const notify = useNotify();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { show, loading, error, markWatched, undo, remove } = useTrackedShow(
     entryId,
     showId
   );
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     if (!loading && show === null) {
@@ -81,7 +85,6 @@ export default function TrackedShowCard({
     return null;
   }
 
-  // 4) Destructure once we know `show` is non-null
   const {
     showName,
     posterUrl,
@@ -92,100 +95,187 @@ export default function TrackedShowCard({
     lastSeason,
     episodesLeft,
   } = show;
-  console.log(show);
+
   const openMenu = (e: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(e.currentTarget);
   const closeMenu = () => setAnchorEl(null);
 
   const handleMarkWatched = async () => {
-    await markWatched();
-    onMutate({ entryId, season: show.nextSeason, episode: show.nextEpisode });
+    try {
+      await markWatched();
+      onMutate({ entryId, season: nextSeason, episode: nextEpisode });
+      notify({
+        message: `Marked S${nextSeason}·E${nextEpisode} as watched`,
+        severity: "success",
+      });
+    } catch (e) {
+      notify({
+        message: `Failed to mark watched: ${(e as Error).message}`,
+        severity: "error",
+      });
+    }
   };
 
   const handleUndo = async () => {
-    await undo();
-    const prevSeason = lastSeason;
-    const prevEpisode = lastEpisode;
-    await undo();
-    // now notify parent which values to revert to
-    onMutate({ entryId, season: prevSeason, episode: prevEpisode });
-    closeMenu();
+    try {
+      await undo();
+      const prevSeason = lastSeason;
+      const prevEpisode = lastEpisode;
+      onMutate({ entryId, season: prevSeason, episode: prevEpisode });
+      notify({
+        message: `Reverted to S${prevSeason}·E${prevEpisode}`,
+        severity: "info",
+      });
+    } catch (e) {
+      notify({
+        message: `Undo failed: ${(e as Error).message}`,
+        severity: "error",
+      });
+    } finally {
+      closeMenu();
+    }
+  };
+
+  const handleRemove = async () => {
+    try {
+      await remove();
+      onRemoved(entryId);
+      notify({
+        message: `"${showName}" removed from your list`,
+        severity: "warning",
+      });
+    } catch (e) {
+      notify({
+        message: `Remove failed: ${(e as Error).message}`,
+        severity: "error",
+      });
+    } finally {
+      closeMenu();
+    }
   };
 
   return (
     <Card
-      sx={{ bgcolor: "#1f1f1f", color: "#fff", borderRadius: 2, boxShadow: 2 }}
+      sx={{
+        bgcolor: "#1f1f1f",
+        color: "#fff",
+        borderRadius: 2,
+        boxShadow: 2,
+      }}
     >
       <MuiLink component={Link} to={`/tv/${showId}`} underline="none">
-        <CardMedia
-          component="img"
-          height="220"
-          image={posterUrl}
-          alt={showName}
-        />
+        <Box
+          sx={{
+            height: 220,
+            width: "100%",
+            overflow: "hidden",
+            position: "relative",
+            bgcolor: "#000",
+          }}
+        >
+          <CardMedia
+            component="img"
+            image={posterUrl}
+            alt={showName}
+            sx={{
+              height: "100%",
+              width: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        </Box>
       </MuiLink>
+
       <CardContent>
         <Typography variant="h6" noWrap>
           {showName}
         </Typography>
-        <Box sx={{ mt: 1, mb: 1 }}>
-          <Typography variant="body2">
-            Next Up:{" "}
-            <strong>
-              S{nextSeason}·E{nextEpisode}
-            </strong>
-          </Typography>
+        {!paused && (
+          <>
+            <Box sx={{ mt: 1, mb: 1 }}>
+              <Typography variant="body2">
+                Next Up:{" "}
+                <strong>
+                  S{nextSeason}·E{nextEpisode}
+                </strong>
+              </Typography>
+              <Typography variant="caption" color="gray">
+                “{nextEpisodeName || "TBA"}”
+              </Typography>
+            </Box>
+            <Typography variant="caption" color="gray">
+              {episodesLeft} left in series
+            </Typography>
+          </>
+        )}
+        {paused && (
           <Typography variant="caption" color="gray">
-            “{nextEpisodeName || "TBA"}”
+            Stopped at S{lastSeason}·E{lastEpisode}
           </Typography>
-        </Box>
-        <Typography variant="caption" color="gray">
-          {episodesLeft} left in series
-        </Typography>
+        )}
       </CardContent>
 
       <CardActions sx={{ justifyContent: "space-between", px: 2, py: 1 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={handleMarkWatched}
-          sx={{
-            flexGrow: 1,
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: 500,
-          }}
-        >
-          {`Mark S${nextSeason}·E${nextEpisode} Watched`}
-        </Button>
+        {!paused ? (
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleMarkWatched}
+            sx={{
+              flexGrow: 1,
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            {`Mark S${nextSeason}·E${nextEpisode} Watched`}
+          </Button>
+        ) : (
+          <Button
+            size="small"
+            variant="contained"
+            onClick={onResume}
+            sx={{
+              flexGrow: 1,
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            Resume
+          </Button>
+        )}
 
-        <IconButton color="inherit" onClick={openMenu}>
-          <MoreVertIcon />
-        </IconButton>
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={closeMenu}>
-          {lastEpisode > 0 && (
-            <MenuItem onClick={handleUndo}>
-              <UndoIcon fontSize="small" sx={{ mr: 1 }} /> Undo
-            </MenuItem>
-          )}
-          <MenuItem
-            onClick={() => {
-              onViewHistory(showId, showName);
-              closeMenu();
-            }}
-          >
-            <HistoryIcon fontSize="small" sx={{ mr: 1 }} /> History
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              remove();
-              closeMenu();
-            }}
-            sx={{ color: "error.main" }}
-          >
-            <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Remove
-          </MenuItem>
-        </Menu>
+        {!paused && (
+          <>
+            <IconButton color="inherit" onClick={openMenu}>
+              <MoreVertIcon />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={closeMenu}
+            >
+              {lastEpisode > 0 && (
+                <MenuItem onClick={handleUndo}>
+                  <UndoIcon fontSize="small" sx={{ mr: 1 }} /> Undo
+                </MenuItem>
+              )}
+              <MenuItem
+                onClick={() => {
+                  onViewHistory(showId, showName);
+                  closeMenu();
+                }}
+              >
+                <HistoryIcon fontSize="small" sx={{ mr: 1 }} /> History
+              </MenuItem>
+              <MenuItem onClick={handleRemove} sx={{ color: "error.main" }}>
+                <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Remove
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </CardActions>
     </Card>
   );

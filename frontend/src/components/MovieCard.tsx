@@ -81,15 +81,14 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     <>
       <Card
         sx={{
-          width: "100%", // ← fill whatever parent gives you
-          maxWidth: 200,
+          width: 180,
+          height: "100%",
           borderRadius: 8,
           boxShadow: 3,
           bgcolor: "transparent",
           overflow: "visible",
         }}
       >
-        {/* Poster on dark page, clipped to rounded top corners */}
         <Box
           sx={{
             borderTopLeftRadius: 8,

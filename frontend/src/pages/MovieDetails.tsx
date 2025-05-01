@@ -150,7 +150,12 @@ const MovieDetails: React.FC = () => {
 
         const recItems: CarouselItem[] = recRes.data.results
           .filter(
-            (r) => r.id !== movie.id && !collItems.some((c) => c.id === r.id)
+            (r) =>
+              r.id !== movie.id &&
+              !collItems.some((c) => c.id === r.id) &&
+              r.poster_path && // <-- must have a poster
+              r.title && // <-- must have a title
+              r.release_date // <-- must have a release date
           )
           .map((r) => ({
             id: r.id,

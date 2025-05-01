@@ -19,6 +19,7 @@ import {
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import { useNotify } from "../components/NotificationsContext";
 import { useWatchlist } from "../hooks/useWatchlist";
+import { useTracking } from "../hooks/useTracking";
 import TrailerDialog from "../components/TrailerDialog";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
 import "./MovieDetails.css";
@@ -72,6 +73,13 @@ const ShowDetails: React.FC = () => {
     show?.name ?? "",
     "tv"
   );
+  const {
+    tracking,
+    pausedEntry,
+    start: startTracking,
+    pause: pauseTracking,
+    loading: trackingLoading,
+  } = useTracking(Number(id), show?.name ?? "");
 
   useEffect(() => {
     if (!id) return;
@@ -146,18 +154,24 @@ const ShowDetails: React.FC = () => {
     }
   };
 
-  const handleStartTracking = async () => {
+  const handleTrackToggle = async () => {
     if (!show) return;
     try {
-      await axios.post(`/api/tracking`, {
-        showId: show.id,
-        showName: show.name,
-        seasonNumber: 1,
-        episodeNumber: 0,
-      });
-      notify({ message: "Started tracking show", severity: "success" });
+      if (tracking) {
+        await pauseTracking();
+        notify({
+          message: `Paused at S${tracking.seasonNumber}·E${tracking.episodeNumber}`,
+          severity: "info",
+        });
+      } else {
+        const entry = await startTracking();
+        notify({
+          message: `Tracking at S${entry.seasonNumber}·E${entry.episodeNumber}`,
+          severity: "success",
+        });
+      }
     } catch {
-      notify({ message: "Could not start tracking", severity: "error" });
+      notify({ message: "Could not update tracking", severity: "error" });
     }
   };
 
@@ -280,10 +294,11 @@ const ShowDetails: React.FC = () => {
             </Button>
             <Button
               size="medium"
-              variant="contained"
-              color="primary"
+              variant={tracking ? "outlined" : "contained"}
+              color={tracking ? "warning" : "primary"}
               startIcon={<HistoryEduIcon />}
-              onClick={handleStartTracking}
+              onClick={handleTrackToggle}
+              disabled={trackingLoading}
               sx={{
                 borderRadius: "24px",
                 px: 3,
@@ -294,11 +309,17 @@ const ShowDetails: React.FC = () => {
                 "&:hover": {
                   boxShadow: 6,
                   transform: "scale(1.05)",
-                  backgroundColor: "#303f9f",
+                  backgroundColor: tracking ? "#f57c00" : "#303f9f",
                 },
               }}
             >
-              Start Tracking
+              {trackingLoading
+                ? "…"
+                : tracking
+                  ? "Stop Tracking"
+                  : pausedEntry
+                    ? `Resume at S${pausedEntry.seasonNumber}·E${pausedEntry.episodeNumber}`
+                    : "Start Tracking"}
             </Button>
             <Button
               size="medium"
