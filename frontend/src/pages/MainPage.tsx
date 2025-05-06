@@ -91,8 +91,8 @@ const MainPage: React.FC = () => {
 
       <section className="section">
         <MovieCarousel title="Trending Movies" movies={trendingMovies} />
-        <MovieCarousel title="Popular Movies" movies={popularMovies} />
         <ShowCarousel title="Trending TV Shows" shows={trendingShows} />
+        <MovieCarousel title="Popular Movies" movies={popularMovies} />
         <ShowCarousel title="Popular TV Shows" shows={popularShows} />
       </section>
     </div>
