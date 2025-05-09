@@ -4,9 +4,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rating, MediaType } from './rating.entity';
 import { User } from '../user/user.entity';
+import { ApiClient, requests } from 'recombee-api-client';
 
 @Injectable()
 export class RatingsService {
+  private recombee = new ApiClient(
+    process.env.RECOMBEE_DB_ID!,
+    process.env.RECOMBEE_TOKEN!,
+  );
   constructor(
     @InjectRepository(Rating)
     private repo: Repository<Rating>,
@@ -30,7 +35,21 @@ export class RatingsService {
       rating.ratedAt = new Date();
     }
 
-    return this.repo.save(rating);
+    const saved = await this.repo.save(rating);
+    const normalized = score / 10;
+    // Record the rating in Recombee
+    await this.recombee.send(
+      new requests.AddRating(
+        user.id.toString(),
+        mediaId.toString(),
+        normalized,
+        {
+          cascadeCreate: true,
+        },
+      ),
+    );
+
+    return saved;
   }
 
   async getRating(user: User, mediaId: number) {
@@ -39,7 +58,7 @@ export class RatingsService {
     });
   }
 
-  async getRatingsForUser(userId: number) {
-    return this.repo.find({ where: { user: { id: userId } } });
+  async getRatingsForUser(userId: number, mediaType?: 'movie' | 'tv') {
+    return this.repo.find({ where: { user: { id: userId }, mediaType } });
   }
 }

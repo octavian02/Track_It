@@ -32,7 +32,8 @@ const navItems = [
   { label: "Tracking", icon: <PeopleIcon />, path: "/track" },
   { label: "Movies", icon: <MovieIcon />, path: "/movies" },
   { label: "TV Shows", icon: <TvIcon />, path: "/tv" },
-  { label: "Awards", icon: <AwardsIcon />, path: "/awards" },
+  { label: "Recommended", icon: <FilterListIcon />, path: "/recommendations" },
+  // { label: "Awards", icon: <AwardsIcon />, path: "/awards" },
   { label: "Community", icon: <CommunityIcon />, path: "/community" },
 ];
 

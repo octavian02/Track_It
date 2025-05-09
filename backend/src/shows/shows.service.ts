@@ -14,7 +14,6 @@ export class ShowsService {
     this.client = axios.create({
       baseURL: 'https://api.themoviedb.org/3',
       params: { api_key: apiKey },
-      timeout: 10_000,
     });
   }
 

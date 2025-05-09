@@ -116,7 +116,7 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
             />
             <Chip
               icon={<StarIcon style={{ color: "#fbc02d" }} />}
-              label={movie.vote_average.toFixed(1)}
+              label={(movie.vote_average ?? 0).toFixed(1)}
               size="small"
               sx={{
                 position: "absolute",

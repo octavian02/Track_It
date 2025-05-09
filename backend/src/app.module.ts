@@ -16,6 +16,7 @@ import { redisStore } from 'cache-manager-redis-store';
 import { CacheModule } from '@nestjs/cache-manager';
 import { HistoryModule } from './history/history.module';
 import { TrackingModule } from './tracking/tracking.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
 
 @Module({
   imports: [
@@ -40,7 +41,7 @@ import { TrackingModule } from './tracking/tracking.module';
         store: redisStore,
         host: configService.get<string>('REDIS_HOST'),
         port: configService.get<number>('REDIS_PORT'),
-        ttl: configService.get<number>('CACHE_TTL'), // seconds
+        ttl: configService.get<number>('CACHE_TTL'),
       }),
     }),
     DatabaseModule,
@@ -53,6 +54,7 @@ import { TrackingModule } from './tracking/tracking.module';
     SearchModule,
     HistoryModule,
     TrackingModule,
+    RecommendationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -115,7 +115,7 @@ const ShowCard: React.FC<ShowCardProps> = ({ show }) => {
             />
             <Chip
               icon={<StarIcon style={{ color: "#fbc02d" }} />}
-              label={show.vote_average.toFixed(1)}
+              label={(show.vote_average ?? 0).toFixed(1)}
               size="small"
               sx={{
                 position: "absolute",
