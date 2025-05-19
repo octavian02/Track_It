@@ -15,7 +15,7 @@ import PublicLayout from "./layout/PublicLayour";
 import AppLayout from "./layout/AppLayout";
 import MovieCredits from "./pages/MovieCredits";
 import axios from "axios";
-import { NotificationProvider } from "./components/NotificationsContext";
+import { NotificationProvider as ToastProvider } from "./components/NotificationsContext";
 import AboutPage from "./pages/AboutPage";
 import HelpPage from "./pages/HelpPage";
 import TermsPage from "./pages/TermsPage";
@@ -36,6 +36,8 @@ import TrackShowsPage from "./pages/TrackShowsPage";
 import WatchlistPage from "./pages/WatchlistPage";
 import RatingsPage from "./pages/RatingsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -76,6 +78,7 @@ const router = createBrowserRouter(
         <Route path="/ratings" element={<RatingsPage />} />
         <Route path="/user/:username/ratings" element={<RatingsPage />} />
         <Route path="/recommendations" element={<RecommendationsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
     </>
   )
@@ -85,11 +88,13 @@ root.render(
   <React.StrictMode>
     <WatchlistProvider>
       <NotificationProvider>
-        <AuthProvider>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <RouterProvider router={router} />
-          </LocalizationProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <RouterProvider router={router} />
+            </LocalizationProvider>
+          </AuthProvider>
+        </ToastProvider>
       </NotificationProvider>
     </WatchlistProvider>
   </React.StrictMode>

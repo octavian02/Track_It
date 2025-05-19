@@ -2,9 +2,11 @@
 import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class UpdateTrackingDto {
+  @IsOptional()
   @IsInt()
   seasonNumber?: number;
 
+  @IsOptional()
   @IsInt()
   episodeNumber?: number;
 

@@ -1,5 +1,5 @@
-// src/components/TrackedShowCard.tsx
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardMedia,
@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import HistoryIcon from "@mui/icons-material/History";
-import DeleteIcon from "@mui/icons-material/Delete";
+import PauseIcon from "@mui/icons-material/Pause";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTrackedShow } from "../hooks/useTrackedShow";
 import { Link } from "react-router-dom";
@@ -29,7 +29,7 @@ interface Props {
   onViewHistory: (showId: number, showName: string) => void;
   paused?: boolean;
   onResume?: () => void;
-  onRemoved: (entryId: number) => void;
+  onPause: (entryId: number) => void;
   onMutate: (updated: {
     entryId: number;
     season: number;
@@ -44,22 +44,23 @@ export default function TrackedShowCard({
   paused = false,
   onResume,
   onViewHistory,
-  onRemoved,
+  onPause,
   onMutate,
   isNewest = false,
 }: Props) {
   const notify = useNotify();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { show, loading, error, markWatched, undo, remove } = useTrackedShow(
+  const { show, loading, error, markWatched, undo } = useTrackedShow(
     entryId,
     showId
   );
 
   useEffect(() => {
+    // if the entry disappears (e.g. 404), treat as “paused/removed”
     if (!loading && show === null) {
-      onRemoved(entryId);
+      onPause(entryId);
     }
-  }, [loading, show, entryId, onRemoved]);
+  }, [loading, show, entryId, onPause]);
 
   if (loading) {
     return (
@@ -84,9 +85,7 @@ export default function TrackedShowCard({
     );
   }
 
-  if (!show) {
-    return null;
-  }
+  if (!show) return null;
 
   const {
     showName,
@@ -122,11 +121,9 @@ export default function TrackedShowCard({
   const handleUndo = async () => {
     try {
       await undo();
-      const prevSeason = lastSeason;
-      const prevEpisode = lastEpisode;
-      onMutate({ entryId, season: prevSeason, episode: prevEpisode });
+      onMutate({ entryId, season: lastSeason, episode: lastEpisode });
       notify({
-        message: `Reverted to S${prevSeason}·E${prevEpisode}`,
+        message: `Reverted to S${lastSeason}·E${lastEpisode}`,
         severity: "info",
       });
     } catch (e) {
@@ -139,17 +136,14 @@ export default function TrackedShowCard({
     }
   };
 
-  const handleRemove = async () => {
+  const handlePause = async () => {
     try {
-      await remove();
-      onRemoved(entryId);
-      notify({
-        message: `"${showName}" removed from your list`,
-        severity: "warning",
-      });
+      await axios.patch(`/api/tracking/${entryId}`, { paused: true });
+      onPause(entryId);
+      notify({ message: `"${showName}" paused`, severity: "info" });
     } catch (e) {
       notify({
-        message: `Remove failed: ${(e as Error).message}`,
+        message: `Pause failed: ${(e as Error).message}`,
         severity: "error",
       });
     } finally {
@@ -210,7 +204,7 @@ export default function TrackedShowCard({
         <Typography variant="h6" noWrap>
           {showName}
         </Typography>
-        {!paused && (
+        {!paused ? (
           <>
             <Box sx={{ mt: 1, mb: 1 }}>
               <Typography variant="body2">
@@ -223,20 +217,17 @@ export default function TrackedShowCard({
                 “{nextEpisodeName || "TBA"}”
               </Typography>
             </Box>
-            {episodesLeft > 1 && (
+            {episodesLeft > 1 ? (
               <Typography variant="caption" color="gray">
                 {episodesLeft} episodes available
               </Typography>
-            )}
-
-            {episodesLeft === 1 && (
+            ) : (
               <Typography variant="caption" color="success.main">
                 Last episode to air and watch
               </Typography>
             )}
           </>
-        )}
-        {paused && (
+        ) : (
           <Typography variant="caption" color="gray">
             Stopped at S{lastSeason}·E{lastEpisode}
           </Typography>
@@ -297,8 +288,8 @@ export default function TrackedShowCard({
               >
                 <HistoryIcon fontSize="small" sx={{ mr: 1 }} /> History
               </MenuItem>
-              <MenuItem onClick={handleRemove} sx={{ color: "error.main" }}>
-                <DeleteIcon fontSize="small" sx={{ mr: 1 }} /> Remove
+              <MenuItem onClick={handlePause}>
+                <PauseIcon fontSize="small" sx={{ mr: 1 }} /> Pause
               </MenuItem>
             </Menu>
           </>

@@ -503,7 +503,7 @@ export default function ProfilePage() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Watchlist" />
         <Tab label="Ratings" />
-        <Tab label="Stats" />
+        {isOwn && <Tab label="Stats" />}
       </Tabs>
 
       {/* WATCHLIST & RATINGS */}

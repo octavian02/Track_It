@@ -13,6 +13,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Badge,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -20,13 +21,14 @@ import {
   Movie as MovieIcon,
   Tv as TvIcon,
   People as PeopleIcon,
-  EmojiEvents as AwardsIcon,
   Chat as CommunityIcon,
   FilterList as FilterListIcon,
 } from "@mui/icons-material";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import { Link as RouterLink } from "react-router-dom";
 import UserMenu from "./UserMenu";
 import SearchBar from "./SearchBar";
+import { useNotifications } from "../contexts/NotificationContext";
 
 const navItems = [
   { label: "Tracking", icon: <PeopleIcon />, path: "/track" },
@@ -43,6 +45,8 @@ const Header: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const toggleDrawer = (open: boolean) => () => setDrawerOpen(open);
+  const { notifications } = useNotifications();
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <>
@@ -108,6 +112,16 @@ const Header: React.FC = () => {
               title="Advanced filters"
             >
               <FilterListIcon />
+            </IconButton>
+            <IconButton
+              color="inherit"
+              component={RouterLink}
+              to="/notifications"
+              title="Notifications"
+            >
+              <Badge badgeContent={unreadCount} color="warning">
+                <NotificationsIcon />
+              </Badge>
             </IconButton>
             <UserMenu />
             <IconButton

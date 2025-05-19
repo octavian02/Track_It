@@ -17,6 +17,7 @@ import TrackedShowCard from "../components/TrackedShowCard";
 import UpcomingShowCard, { UpcomingShow } from "../components/UpcomingShowCard";
 import EpisodeHistoryDialog from "../components/EpisodeHistoryDialog";
 import { useNotify } from "../components/NotificationsContext";
+import ReleaseScheduler from "../components/ReleaseScheduler";
 
 interface TrackingEntry {
   id: number;
@@ -58,6 +59,7 @@ export default function TrackShowsPage() {
       } | null;
     };
   }>({});
+  <ReleaseScheduler upcoming={upcoming} />;
 
   const loadEntries = async () => {
     setLoading(true);
@@ -188,10 +190,11 @@ export default function TrackShowsPage() {
     });
   };
 
-  // Remove an entry altogether
-  const handleRemoved = (removedId: number) => {
-    setEntries((prev) => prev.filter((e) => e.id !== removedId));
-    notify({ message: "Show removed from your list", severity: "success" });
+  const handlePause = (pausedId: number) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === pausedId ? { ...e, paused: true } : e))
+    );
+    notify({ message: "Show paused", severity: "info" });
   };
 
   // Resume a paused entry
@@ -302,8 +305,8 @@ export default function TrackShowsPage() {
                       onViewHistory={(showId, showName) =>
                         setHistDlg({ open: true, showId, showName })
                       }
-                      onRemoved={handleRemoved}
                       onMutate={handleMutate}
+                      onPause={handlePause}
                     />
                   </Grid>
                 ))}
@@ -326,8 +329,8 @@ export default function TrackShowsPage() {
                       onViewHistory={(showId, showName) =>
                         setHistDlg({ open: true, showId, showName })
                       }
-                      onRemoved={handleRemoved}
                       onMutate={handleMutate}
+                      onPause={handlePause}
                     />
                   </Grid>
                 ))}
@@ -352,8 +355,8 @@ export default function TrackShowsPage() {
                       onViewHistory={(showId, showName) =>
                         setHistDlg({ open: true, showId, showName })
                       }
-                      onRemoved={handleRemoved}
                       onMutate={handleMutate}
+                      onPause={handlePause}
                     />
                   </Grid>
                 ))}

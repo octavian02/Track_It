@@ -176,11 +176,5 @@ export function useTrackedShow(entryId: number, showId: number) {
     fetchShow();
   };
 
-  const remove = async () => {
-    if (!show) return;
-    await axios.delete(`/api/tracking/${show.id}`);
-    setShow(null);
-  };
-
-  return { show, loading, error, markWatched, undo, remove };
+  return { show, loading, error, markWatched, undo };
 }
