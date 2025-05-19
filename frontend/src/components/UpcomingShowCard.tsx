@@ -1,6 +1,13 @@
 // src/components/UpcomingShowCard.tsx
 import React from "react";
-import { Card, CardMedia, CardContent, Typography, Box } from "@mui/material";
+import {
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
+  Box,
+  Chip,
+} from "@mui/material";
 
 export interface UpcomingShow {
   showId: number;
@@ -10,6 +17,7 @@ export interface UpcomingShow {
   nextEpisode: number;
   nextEpisodeName: string;
   nextAirDate: string;
+  isNewest: boolean;
 }
 
 interface Props {

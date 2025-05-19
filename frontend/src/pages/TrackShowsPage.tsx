@@ -10,7 +10,6 @@ import {
   Typography,
   Button,
   CircularProgress,
-  Card,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
@@ -45,51 +44,103 @@ export default function TrackShowsPage() {
     showId: 0,
     showName: "",
   });
+  const [detailsMap, setDetailsMap] = useState<{
+    [showId: number]: {
+      nextEp: {
+        season_number: number;
+        episode_number: number;
+        air_date: string;
+      } | null;
+      lastEp: {
+        season_number: number;
+        episode_number: number;
+        air_date: string;
+      } | null;
+    };
+  }>({});
 
-  // Load entries from API
   const loadEntries = async () => {
     setLoading(true);
     try {
+      // 1) load your tracking entries
       const { data: list } = await axios.get<TrackingEntry[]>("/api/tracking");
       setEntries(list);
 
-      // Build upcoming list
-      const upcomingList: UpcomingShow[] = [];
-      await Promise.all(
-        list.map(async (e) => {
-          const { data: details } = await axios.get<{
+      // 2) fetch details for each show (next_ep & last_ep) in parallel
+      const detailResponses = await Promise.all(
+        list.map((e) =>
+          axios.get<{
+            id: number;
             name: string;
-            poster_path: string | null;
             next_episode_to_air: {
               season_number: number;
               episode_number: number;
+              air_date: string;
               name: string;
+            } | null;
+            last_episode_to_air: {
+              season_number: number;
+              episode_number: number;
               air_date: string;
             } | null;
-          }>(`/api/shows/${e.showId}`);
-          const nea = details.next_episode_to_air;
-          if (nea) {
-            const air = new Date(nea.air_date);
-            if (air > new Date()) {
-              upcomingList.push({
-                showId: e.showId,
-                showName: details.name,
-                posterUrl: details.poster_path
-                  ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
-                  : PortraitPlaceholder,
-                nextSeason: nea.season_number,
-                nextEpisode: nea.episode_number,
-                nextEpisodeName: nea.name,
-                nextAirDate: nea.air_date,
-              });
-            }
-          }
-        })
+            poster_path: string | null;
+          }>(`/api/shows/${e.showId}`)
+        )
       );
+
+      // 3) build a lookup map for filtering “caught-up” shows
+      const map: typeof detailsMap = {};
+      detailResponses.forEach(({ data }) => {
+        map[data.id] = {
+          nextEp: data.next_episode_to_air
+            ? {
+                season_number: data.next_episode_to_air.season_number,
+                episode_number: data.next_episode_to_air.episode_number,
+                air_date: data.next_episode_to_air.air_date,
+              }
+            : null,
+          lastEp: data.last_episode_to_air
+            ? {
+                season_number: data.last_episode_to_air.season_number,
+                episode_number: data.last_episode_to_air.episode_number,
+                air_date: data.last_episode_to_air.air_date,
+              }
+            : null,
+        };
+      });
+      setDetailsMap(map);
+
+      // 4) build your upcoming list from that same detailResponses
+      const upcomingList: UpcomingShow[] = detailResponses
+        .map(({ data }) => {
+          const nea = data.next_episode_to_air;
+          if (!nea) return null;
+          const airDate = new Date(nea.air_date);
+          if (airDate <= new Date()) return null;
+          return {
+            showId: data.id,
+            showName: data.name,
+            posterUrl: data.poster_path
+              ? `https://image.tmdb.org/t/p/w300${data.poster_path}`
+              : PortraitPlaceholder,
+            nextSeason: nea.season_number,
+            nextEpisode: nea.episode_number,
+            nextEpisodeName: nea.name,
+            nextAirDate: nea.air_date,
+            isNewest: false, // default; we’ll mark one below
+          };
+        })
+        .filter((u): u is UpcomingShow => u !== null);
+
+      // 5) sort ascending and tag the very next one
       upcomingList.sort(
         (a, b) =>
           new Date(a.nextAirDate).getTime() - new Date(b.nextAirDate).getTime()
       );
+      if (upcomingList.length > 0) {
+        upcomingList[0].isNewest = true;
+      }
+
       setUpcoming(upcomingList);
     } finally {
       setLoading(false);
@@ -165,10 +216,43 @@ export default function TrackShowsPage() {
     }
   };
 
-  const active = entries.filter((e) => !e.paused);
-  const paused = entries.filter((e) => e.paused);
+  const notCaughtUp = entries.filter((e) => {
+    const last = detailsMap[e.showId]?.lastEp;
+    if (!last) return true;
+    return !(
+      e.seasonNumber === last.season_number &&
+      e.episodeNumber === last.episode_number
+    );
+  });
+
+  // 2) keep only shows where lastEp is strictly ahead of your pointer
+  const availableEntries = notCaughtUp.filter((e) => {
+    const last = detailsMap[e.showId]?.lastEp;
+    return (
+      !!last &&
+      (last.season_number > e.seasonNumber ||
+        (last.season_number === e.seasonNumber &&
+          last.episode_number > e.episodeNumber))
+    );
+  });
+
+  // 3) pick the one with the most recent lastEp.air_date
+  let newestEntryId: number | null = null;
+  let newestTs = 0;
+  for (const e of availableEntries) {
+    const last = detailsMap[e.showId]!.lastEp!;
+    const ts = new Date(last.air_date).getTime();
+    if (ts > newestTs) {
+      newestTs = ts;
+      newestEntryId = e.id;
+    }
+  }
+
+  // 4) split into your tabs
+  const active = notCaughtUp.filter((e) => !e.paused);
   const inProg = active.filter((e) => e.episodeNumber > 0);
   const notStarted = active.filter((e) => e.episodeNumber === 0);
+  const paused = entries.filter((e) => e.paused);
 
   return (
     <Container sx={{ py: 4 }}>
@@ -214,6 +298,7 @@ export default function TrackShowsPage() {
                     <TrackedShowCard
                       entryId={e.id}
                       showId={e.showId}
+                      isNewest={e.id === newestEntryId}
                       onViewHistory={(showId, showName) =>
                         setHistDlg({ open: true, showId, showName })
                       }

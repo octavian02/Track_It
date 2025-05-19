@@ -16,6 +16,7 @@ export interface DisplayShow {
   totalEpisodes: number;
   episodesLeft: number;
   nextAirDate: string;
+  lastEpAirDate: string;
 }
 
 export function useTrackedShow(entryId: number, showId: number) {
@@ -49,6 +50,12 @@ export function useTrackedShow(entryId: number, showId: number) {
           name: string;
           air_date: string;
         } | null;
+        last_episode_to_air: {
+          season_number: number;
+          episode_number: number;
+          name: string;
+          air_date: string;
+        } | null;
       }>(`/api/shows/${showId}`);
 
       // 3) fetch current season episodes
@@ -57,10 +64,10 @@ export function useTrackedShow(entryId: number, showId: number) {
       }>(`/api/shows/${showId}/seasons/${entry.seasonNumber}`);
 
       // 4) compute DisplayShow (same logic as before)…
-      const lastEp = seasonData.episodes.find(
+      const lastEpItem = seasonData.episodes.find(
         (ep) => ep.episode_number === entry.episodeNumber
       );
-      const lastName = lastEp?.name || "";
+      const lastName = lastEpItem?.name || "";
 
       let nextSeason = entry.seasonNumber;
       let nextEpisode = entry.episodeNumber + 1;
@@ -85,28 +92,40 @@ export function useTrackedShow(entryId: number, showId: number) {
             ?.name || "";
       }
 
-      const totalEpisodes = details.seasons
-        .filter((s) => s.season_number > 0)
-        .reduce((sum, s) => sum + s.episode_count, 0);
+      const totalEpisodes = details.seasons.reduce(
+        (sum, s) => sum + s.episode_count,
+        0
+      );
 
       // 2) watched so far:
       //    - all episodes in past seasons (excluding 0)
       //    - plus the current episode
       let watchedTotal = entry.episodeNumber;
       details.seasons.forEach((s) => {
-        if (s.season_number > 0 && s.season_number < entry.seasonNumber) {
+        if (s.season_number < entry.seasonNumber) {
           watchedTotal += s.episode_count;
         }
       });
 
       // 3) now subtract
-      const episodesLeft = totalEpisodes - watchedTotal;
+      const lastEp = details.last_episode_to_air;
+      let episodesLeft = 0;
+      if (lastEp) {
+        // compute how many have aired in total up to lastEp
+        const airedTotal =
+          details.seasons
+            .filter((s) => s.season_number < lastEp.season_number)
+            .reduce((sum, s) => sum + s.episode_count, 0) +
+          lastEp.episode_number;
+        episodesLeft = Math.max(0, airedTotal - watchedTotal);
+      }
 
+      // build the poster URL
       const posterUrl = details.poster_path
         ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
         : "";
 
-      const built: DisplayShow = {
+      setShow({
         id: entry.id,
         showId,
         showName: details.name,
@@ -120,12 +139,11 @@ export function useTrackedShow(entryId: number, showId: number) {
         totalEpisodes,
         episodesLeft,
         nextAirDate: details.next_episode_to_air?.air_date || "",
-      };
-
-      setShow(built);
+        lastEpAirDate: details.last_episode_to_air?.air_date || "",
+      });
     } catch (e: any) {
       console.error("useTrackedShow error:", e);
-      // if it was a 404, we treat that as “gone”
+      // treat 404 as “removed”
       if (axios.isAxiosError(e) && e.response?.status === 404) {
         setShow(null);
       } else {

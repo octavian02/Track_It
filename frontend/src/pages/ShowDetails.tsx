@@ -10,6 +10,7 @@ import {
   Tooltip,
   Dialog,
   DialogContent,
+  LinearProgress,
 } from "@mui/material";
 import {
   FavoriteBorder as FavoriteBorderIcon,
@@ -52,6 +53,12 @@ interface ShowDetail {
   number_of_episodes: number;
   genres: Genre[];
   original_language: string;
+  seasons: { season_number: number; episode_count: number }[];
+  last_episode_to_air: {
+    season_number: number;
+    episode_number: number;
+    air_date: string;
+  } | null;
 }
 
 const ShowDetails: React.FC = () => {
@@ -124,7 +131,6 @@ const ShowDetails: React.FC = () => {
       }
     })();
   }, [id]);
-  //TODO: WRITE THE BUTTON THAT IT"S OBVIOUSLY BEEN PRESSED< THE ADD TO TRACKING ONE
   // — toggle watchlist
   const handleWatchToggle = async () => {
     const res = await toggleWatchlist();
@@ -182,6 +188,39 @@ const ShowDetails: React.FC = () => {
   const backdropUrl = `https://image.tmdb.org/t/p/original${show.backdrop_path}`;
   const year = new Date(show.first_air_date).getFullYear();
 
+  const lastEp = show.last_episode_to_air;
+  const seasons = show.seasons;
+
+  let totalAired = 0;
+  if (lastEp) {
+    // sum all fully‐aired seasons
+    totalAired =
+      seasons
+        .filter((s) => s.season_number < lastEp.season_number)
+        .reduce((sum, s) => sum + s.episode_count, 0) +
+      // plus the episodes in the last aired season
+      lastEp.episode_number;
+  }
+  const pointer = tracking ?? pausedEntry;
+  // compute how many you've watched so far:
+  const watchedCount = pointer
+    ? // sum fully‐watched seasons
+      show.seasons
+        .filter((s) => s.season_number < pointer.seasonNumber)
+        .reduce((sum, s) => sum + s.episode_count, 0) +
+      // plus the episodes in the current season
+      pointer.episodeNumber
+    : 0;
+
+  // percentage clamped to 100
+  const percent =
+    totalAired > 0 ? Math.round((watchedCount / totalAired) * 100) : 0;
+
+  // choose bar color
+  let barColor: "primary" | "warning" | "success" = "primary";
+  if (percent === 100) barColor = "success";
+  else if (pausedEntry) barColor = "warning";
+
   return (
     <div className="detail-page">
       {/* Hero Banner */}
@@ -218,7 +257,17 @@ const ShowDetails: React.FC = () => {
           <Typography variant="subtitle2" gutterBottom className="language">
             Language: {show.original_language.toUpperCase()}
           </Typography>
-
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="body2">
+              Watched {watchedCount} of {totalAired} aired ({percent}%)
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={percent}
+              color={barColor}
+              sx={{ height: 10, borderRadius: 5, mt: 1 }}
+            />
+          </Box>
           {/* Stats & Actions */}
           <Box
             sx={{

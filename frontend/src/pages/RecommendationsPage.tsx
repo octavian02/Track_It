@@ -1,7 +1,14 @@
 // src/pages/RecommendationsPage.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Container,
+  Paper,
+  useTheme,
+} from "@mui/material";
 import ShowCarousel from "../components/ShowCarousel";
 import MovieCarousel from "../components/MovieCarousel";
 
@@ -20,6 +27,7 @@ interface TMDBMovie {
 }
 
 const RecommendationsPage: React.FC = () => {
+  const theme = useTheme();
   const [tvRecs, setTvRecs] = useState<TMDBShow[]>([]);
   const [movieRecs, setMovieRecs] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,17 +38,9 @@ const RecommendationsPage: React.FC = () => {
       .get<TMDBShow[]>("/api/recommendations", {
         params: { type: "tv", count: 10 },
       })
-      .then((res) =>
-        setTvRecs(
-          res.data.map((item) => ({
-            ...item,
-            name: item.name,
-          }))
-        )
-      )
+      .then((res) => setTvRecs(res.data))
       .catch((err) => console.error("TV recs failed", err));
 
-    // Fetch Movie recommendations
     const moviePromise = axios
       .get<TMDBMovie[]>("/api/recommendations", {
         params: { type: "movie", count: 10 },
@@ -53,33 +53,114 @@ const RecommendationsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box textAlign="center" sx={{ mt: 6 }}>
+      <Box textAlign="center" sx={{ mt: 8 }}>
         <CircularProgress />
       </Box>
     );
   }
 
+  const hasTV = tvRecs.length > 0;
+  const hasMovies = movieRecs.length > 0;
+
   return (
-    <Box sx={{ py: 4, px: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Recommended for You
-      </Typography>
-
-      {tvRecs.length > 0 && (
-        <ShowCarousel title="TV Shows You Might Like" shows={tvRecs} />
-      )}
-
-      {movieRecs.length > 0 && (
-        <MovieCarousel title="Movies You Might Like" movies={movieRecs} />
-      )}
-
-      {tvRecs.length === 0 && movieRecs.length === 0 && (
-        <Box textAlign="center" sx={{ mt: 4 }}>
-          <Typography variant="subtitle1" color="text.secondary">
-            No recommendations found yet.
-          </Typography>
+    <Box
+      sx={{
+        background:
+          theme.palette.mode === "light"
+            ? theme.palette.grey[100]
+            : theme.palette.background.default,
+        minHeight: "100vh",
+        py: 6,
+      }}
+    >
+      <Container maxWidth="lg">
+        {/* ─────────── Modern Gradient Banner ─────────── */}
+        <Box
+          sx={{
+            position: "relative",
+            mb: 6,
+            height: 220,
+            borderRadius: 2,
+            overflow: "hidden",
+          }}
+        >
+          {/* subtle purple→pink gradient */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(135deg, rgba(127,0,255,0.8) 0%, rgba(224,0,255,0.8) 100%)",
+            }}
+          />
+          {/* text overlay */}
+          <Box
+            sx={{
+              position: "relative",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              color: "common.white",
+              textAlign: "center",
+              px: 2,
+            }}
+          >
+            <Typography variant="h3" component="h1" gutterBottom>
+              Recommended for You
+            </Typography>
+            <Typography variant="h6">
+              Personalized picks based on your ratings and your friends’ watches
+            </Typography>
+          </Box>
         </Box>
-      )}
+
+        {/* TV Shows Carousel */}
+        {hasTV && (
+          <Paper
+            elevation={1}
+            sx={{
+              mb: 4,
+              p: 2,
+              bgcolor: theme.palette.background.paper,
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h5" gutterBottom>
+              TV Shows You Might Like
+            </Typography>
+            <ShowCarousel title="" shows={tvRecs} />
+          </Paper>
+        )}
+
+        {hasMovies && (
+          <Paper
+            elevation={1}
+            sx={{
+              mb: 4,
+              p: 2,
+              bgcolor: theme.palette.background.paper,
+              borderRadius: 2,
+            }}
+          >
+            <Typography variant="h5" gutterBottom>
+              Movies You Might Like
+            </Typography>
+            <MovieCarousel title="" movies={movieRecs} />
+          </Paper>
+        )}
+
+        {/* No Recommendations Fallback */}
+        {!hasTV && !hasMovies && (
+          <Box textAlign="center" mt={4}>
+            <Typography variant="subtitle1" color="text.secondary">
+              No recommendations found yet. Rate some movies or shows to get
+              started!
+            </Typography>
+          </Box>
+        )}
+      </Container>
     </Box>
   );
 };

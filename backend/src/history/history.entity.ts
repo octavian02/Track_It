@@ -39,6 +39,9 @@ export class History {
   @Column({ nullable: true })
   episodeName?: string;
 
+  @Column({ type: 'int', default: 0 })
+  runtimeMinutes: number;
+
   @CreateDateColumn()
   watchedAt: Date;
 }

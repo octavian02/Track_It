@@ -126,6 +126,7 @@ export class UserService {
     });
     return rels.map((r) => r.following);
   }
+
   async getAvatarBuffer(userId: number): Promise<Buffer | null> {
     const u = await this.usersRepo.findOne({
       where: { id: userId },

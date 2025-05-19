@@ -27,10 +27,14 @@ import { LoginDto } from './dto/login.dto';
 import { User } from './user.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { FollowService } from './follow.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private followService: FollowService,
+  ) {}
 
   @Post('signup')
   signup(@Body() dto: CreateUserDto) {
@@ -104,7 +108,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get(':id/following')
   listFollowing(@Param('id') id: string) {
-    return this.userService.listFollowing(+id);
+    return this.followService.listFollowing(+id);
   }
 
   // ─── Search & List All (optional) ─────────────────────────────────────────

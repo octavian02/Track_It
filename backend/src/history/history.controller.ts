@@ -23,6 +23,11 @@ export class HistoryController {
     private readonly showsSvc: ShowsService,
   ) {}
 
+  @Get('summary')
+  async summary(@Request() req) {
+    return this.historySvc.getSummary(req.user);
+  }
+
   @Post('movie/:id')
   async markMovie(
     @Request() req,

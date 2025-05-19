@@ -13,6 +13,7 @@ import {
   Box,
   CircularProgress,
   Link as MuiLink,
+  Chip,
 } from "@mui/material";
 import UndoIcon from "@mui/icons-material/Undo";
 import HistoryIcon from "@mui/icons-material/History";
@@ -34,6 +35,7 @@ interface Props {
     season: number;
     episode: number;
   }) => void;
+  isNewest?: boolean;
 }
 
 export default function TrackedShowCard({
@@ -44,6 +46,7 @@ export default function TrackedShowCard({
   onViewHistory,
   onRemoved,
   onMutate,
+  isNewest = false,
 }: Props) {
   const notify = useNotify();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -157,12 +160,28 @@ export default function TrackedShowCard({
   return (
     <Card
       sx={{
+        position: "relative",
         bgcolor: "#1f1f1f",
         color: "#fff",
         borderRadius: 2,
         boxShadow: 2,
       }}
     >
+      {episodesLeft === 1 && (
+        <Chip
+          label="Newest"
+          size="small"
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            bgcolor: "#1976d2",
+            color: "#fff",
+            zIndex: 1,
+          }}
+        />
+      )}
+
       <MuiLink component={Link} to={`/tv/${showId}`} underline="none">
         <Box
           sx={{
@@ -204,9 +223,17 @@ export default function TrackedShowCard({
                 “{nextEpisodeName || "TBA"}”
               </Typography>
             </Box>
-            <Typography variant="caption" color="gray">
-              {episodesLeft} left in series
-            </Typography>
+            {episodesLeft > 1 && (
+              <Typography variant="caption" color="gray">
+                {episodesLeft} episodes available
+              </Typography>
+            )}
+
+            {episodesLeft === 1 && (
+              <Typography variant="caption" color="success.main">
+                Last episode to air and watch
+              </Typography>
+            )}
           </>
         )}
         {paused && (

@@ -13,6 +13,7 @@ import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
 import { MediaType } from './rating.entity';
 import { RatingItemDto } from './dto/rating-item.dto';
+import { FeedItemDto } from './dto/feed-item.dto';
 
 @Controller('ratings')
 @UseGuards(JwtAuthGuard)
@@ -33,6 +34,16 @@ export class RatingsController {
       score: r.score,
       dateAdded: r.ratedAt, // map ratedAt → dateAdded
     }));
+  }
+
+  @Get('feed')
+  async feed(
+    @Request() req,
+    @Query('limit') limit = '6',
+  ): Promise<FeedItemDto[]> {
+    const meId = req.user.id;
+    const take = parseInt(limit, 10) || 6;
+    return this.svc.getFeedForUser(meId, take);
   }
 
   @Get(':mediaId')

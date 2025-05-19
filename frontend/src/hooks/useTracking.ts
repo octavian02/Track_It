@@ -10,9 +10,6 @@ export interface TrackingItem {
   paused: boolean;
 }
 
-/**
- * Hook to manage tracking with pause/resume using a `paused` flag.
- */
 export function useTracking(
   showId: number,
   showName: string

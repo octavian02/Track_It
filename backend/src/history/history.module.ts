@@ -6,9 +6,15 @@ import { HistoryController } from './history.controller';
 import { HistoryService } from './history.service';
 import { TrackingModule } from 'src/tracking/tracking.module';
 import { ShowsModule } from 'src/shows/shows.module';
+import { MoviesModule } from 'src/movies/movies.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([History]), TrackingModule, ShowsModule],
+  imports: [
+    TypeOrmModule.forFeature([History]),
+    TrackingModule,
+    ShowsModule,
+    MoviesModule,
+  ],
   providers: [HistoryService],
   controllers: [HistoryController],
   exports: [HistoryService],
