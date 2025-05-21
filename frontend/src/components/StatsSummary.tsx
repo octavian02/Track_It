@@ -14,6 +14,10 @@ import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import MovieIcon from "@mui/icons-material/Movie";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 
+interface StatsSummaryProps {
+  userId?: number;
+}
+
 // turn minutes into [ { count, unit }, ... ]
 function formatMinutes(totalMinutes: number) {
   const totalHours = Math.floor(totalMinutes / 60);
@@ -28,7 +32,7 @@ function formatMinutes(totalMinutes: number) {
   ].filter((x) => x.count > 0);
 }
 
-export default function StatsSummary() {
+export default function StatsSummary({ userId }: StatsSummaryProps) {
   const theme = useTheme();
   const [summary, setSummary] = useState<null | {
     tvTime: number;
@@ -39,13 +43,16 @@ export default function StatsSummary() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const url = userId
+      ? `/api/history/summary?userId=${userId}`
+      : "/api/history/summary";
     axios
       .get<{
         tvTime: number;
         episodesWatched: number;
         movieTime: number;
         moviesWatched: number;
-      }>("/api/history/summary")
+      }>(url)
       .then((res) => setSummary(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));

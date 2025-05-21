@@ -22,25 +22,34 @@ export class HistoryService {
     movieId: number,
     mediaName?: string,
   ): Promise<History> {
-    const existing = await this.repo.findOne({
+    let entry = await this.repo.findOne({
       where: {
         user: { id: user.id },
-        mediaType: 'movie' as MediaType,
+        mediaType: 'movie',
         mediaId: movieId,
       },
     });
-    if (existing) return existing;
-    const details = await this.moviesSvc.getDetails(movieId);
-    const runtime = details.runtime || 0;
 
-    const item = this.repo.create({
-      user,
-      mediaType: 'movie' as MediaType,
-      mediaId: movieId,
-      mediaName,
-      runtimeMinutes: runtime,
-    });
-    return this.repo.save(item);
+    if (!entry) {
+      // first watch
+      const details = await this.moviesSvc.getDetails(movieId);
+      entry = this.repo.create({
+        user,
+        mediaType: 'movie',
+        mediaId: movieId,
+        mediaName,
+        runtimeMinutes: details.runtime || 0,
+        watchCount: 1,
+        firstWatchedAt: new Date(),
+        lastWatchedAt: new Date(),
+      });
+    } else {
+      // rewatch
+      entry.watchCount++;
+      entry.lastWatchedAt = new Date();
+    }
+
+    return this.repo.save(entry);
   }
 
   async unmarkMovie(user: User, movieId: number) {
@@ -59,7 +68,7 @@ export class HistoryService {
         user: { id: user.id },
         mediaType: 'movie' as MediaType,
       },
-      order: { watchedAt: 'DESC' },
+      order: { firstWatchedAt: 'DESC' },
     });
   }
 
@@ -72,52 +81,89 @@ export class HistoryService {
     mediaName?: string,
     episodeName?: string,
   ): Promise<History> {
-    const existing = await this.repo.findOne({
-      where: {
-        user: { id: user.id },
-        mediaType: 'episode' as MediaType,
-        mediaId: showId,
-        seasonNumber,
-        episodeNumber,
-      },
-    });
-    if (existing) return existing;
+    // 1) Backfill show title if needed
+    if (!mediaName) {
+      const show = await this.showsSvc.getDetails(showId);
+      mediaName = show.name;
+    }
 
+    // 2) Fetch episode details (for runtime & title)
     const ep = await this.showsSvc.getEpisodeDetail(
       showId,
       seasonNumber,
       episodeNumber,
     );
-    const runtime = ep.runtime || 0;
+    if (!episodeName) {
+      episodeName = ep.name;
+    }
 
-    const item = this.repo.create({
-      user,
-      mediaType: 'episode' as MediaType,
-      mediaId: showId,
-      seasonNumber,
-      episodeNumber,
-      mediaName,
-      episodeName,
-      runtimeMinutes: runtime,
+    // 3) Try to find an existing history row
+    let entry = await this.repo.findOne({
+      where: {
+        user: { id: user.id },
+        mediaType: 'episode',
+        mediaId: showId,
+        seasonNumber,
+        episodeNumber,
+      },
     });
-    return this.repo.save(item);
+
+    if (!entry) {
+      // first‐time watch
+      entry = this.repo.create({
+        user,
+        mediaType: 'episode',
+        mediaId: showId,
+        mediaName,
+        seasonNumber,
+        episodeNumber,
+        episodeName,
+        runtimeMinutes: ep.runtime || 0,
+        watchCount: 1, // start at 1
+        firstWatchedAt: new Date(),
+        lastWatchedAt: new Date(),
+      });
+    } else {
+      // rewatch → bump the counter & update timestamp
+      entry.watchCount = entry.watchCount + 1;
+      entry.lastWatchedAt = new Date();
+    }
+
+    return this.repo.save(entry);
   }
 
-  /** Unmark an episode as watched */
   async unmarkEpisode(
     user: User,
     showId: number,
     seasonNumber: number,
     episodeNumber: number,
-  ) {
-    await this.repo.delete({
-      user: { id: user.id },
-      mediaType: 'episode' as MediaType,
-      mediaId: showId,
-      seasonNumber,
-      episodeNumber,
+  ): Promise<{ removed: boolean }> {
+    // 1) load the existing history row
+    const entry = await this.repo.findOne({
+      where: {
+        user: { id: user.id },
+        mediaType: 'episode',
+        mediaId: showId,
+        seasonNumber,
+        episodeNumber,
+      },
     });
-    return { removed: true };
+
+    if (!entry) {
+      // nothing to remove
+      return { removed: false };
+    }
+
+    if (entry.watchCount > 1) {
+      // just decrement the counter
+      entry.watchCount = entry.watchCount - 1;
+      await this.repo.save(entry);
+      return { removed: false }; // row still exists, just one removed
+    } else {
+      // last copy → delete the whole row
+      await this.repo.delete({ id: entry.id });
+      return { removed: true };
+    }
   }
 
   async listWatchedEpisodes(user: User, showId: number): Promise<History[]> {
@@ -135,41 +181,29 @@ export class HistoryService {
   }
 
   async getSummary(user: User): Promise<SummaryDto> {
-    // 1) fetch all history for this user
-    const all = await this.repo.find({ where: { user: { id: user.id } } });
+    // 1) episodes stats
+    const epRaw = await this.repo
+      .createQueryBuilder('h')
+      .select('SUM(h.runtimeMinutes * h.watchCount)', 'tvTime')
+      .addSelect('SUM(h.watchCount)', 'episodesWatched')
+      .where('h.userId = :uid', { uid: user.id })
+      .andWhere("h.mediaType = 'episode'")
+      .getRawOne<{ tvTime: string; episodesWatched: string }>();
 
-    // 2) split into episodes vs movies
-    const movies = all.filter((h) => h.mediaType === 'movie');
-    const episodes = all.filter((h) => h.mediaType === 'episode');
-
-    // 3) count how many
-    const moviesWatched = movies.length;
-    const episodesWatched = episodes.length;
-
-    // 4) sum runtimes
-    let movieTime = 0;
-    for (const h of movies) {
-      const details = await this.moviesSvc.getDetails(h.mediaId);
-      // TMDB returns `runtime` in minutes
-      movieTime += details.runtime ?? 0;
-    }
-
-    let tvTime = 0;
-    for (const h of episodes) {
-      const details = await this.showsSvc.getEpisodeDetail(
-        h.mediaId,
-        h.seasonNumber!,
-        h.episodeNumber!,
-      );
-      // TMDB returns `runtime` in minutes
-      tvTime += details.runtime ?? 0;
-    }
+    // 2) movies stats
+    const mvRaw = await this.repo
+      .createQueryBuilder('h')
+      .select('SUM(h.runtimeMinutes * h.watchCount)', 'movieTime')
+      .addSelect('SUM(h.watchCount)', 'moviesWatched')
+      .where('h.userId = :uid', { uid: user.id })
+      .andWhere("h.mediaType = 'movie'")
+      .getRawOne<{ movieTime: string; moviesWatched: string }>();
 
     return {
-      moviesWatched,
-      episodesWatched,
-      movieTime,
-      tvTime,
+      tvTime: Number(epRaw.tvTime) || 0,
+      episodesWatched: Number(epRaw.episodesWatched) || 0,
+      movieTime: Number(mvRaw.movieTime) || 0,
+      moviesWatched: Number(mvRaw.moviesWatched) || 0,
     };
   }
 }

@@ -163,7 +163,7 @@ export function useTrackedShow(entryId: number, showId: number) {
     if (!show) return;
     await axios.post(
       `/api/history/episode/${show.showId}/${show.nextSeason}/${show.nextEpisode}`,
-      { mediaName: show.showName }
+      { mediaName: show.showName, episodeName: show.nextEpisodeName }
     );
     fetchShow();
   };

@@ -15,6 +15,8 @@ export function useAvatar(userId?: number) {
   const [error, setError] = useState<any>(null);
 
   useEffect(() => {
+    setUrl(undefined);
+    setError(null);
     if (userId == null) {
       setLoading(false);
       return;

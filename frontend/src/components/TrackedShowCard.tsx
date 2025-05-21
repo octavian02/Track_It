@@ -22,6 +22,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTrackedShow } from "../hooks/useTrackedShow";
 import { Link } from "react-router-dom";
 import { useNotify } from "../components/NotificationsContext";
+import CheckIcon from "@mui/icons-material/Check";
 
 interface Props {
   entryId: number;
@@ -239,12 +240,19 @@ export default function TrackedShowCard({
           <Button
             size="small"
             variant="outlined"
+            color="success"
+            startIcon={<CheckIcon />}
             onClick={handleMarkWatched}
             sx={{
               flexGrow: 1,
               borderRadius: 2,
               textTransform: "none",
+              backgroundColor: "success.main",
               fontWeight: 500,
+              color: "common.white", // white text
+              "&:hover": {
+                backgroundColor: "success.dark",
+              },
             }}
           >
             {`Mark S${nextSeason}·E${nextEpisode} Watched`}

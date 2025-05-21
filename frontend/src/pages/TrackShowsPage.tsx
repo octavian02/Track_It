@@ -59,7 +59,6 @@ export default function TrackShowsPage() {
       } | null;
     };
   }>({});
-  <ReleaseScheduler upcoming={upcoming} />;
 
   const loadEntries = async () => {
     setLoading(true);

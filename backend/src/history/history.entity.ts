@@ -6,6 +6,7 @@ import {
   Column,
   CreateDateColumn,
   Unique,
+  UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../user/user.entity';
 
@@ -35,13 +36,18 @@ export class History {
   @Column({ nullable: true })
   episodeNumber?: number;
 
-  // New: optionally store episode title when mediaType='episode'
   @Column({ nullable: true })
   episodeName?: string;
 
   @Column({ type: 'int', default: 0 })
   runtimeMinutes: number;
 
+  @Column({ type: 'int', default: 1 })
+  watchCount: number;
+
   @CreateDateColumn()
-  watchedAt: Date;
+  firstWatchedAt: Date;
+
+  @UpdateDateColumn()
+  lastWatchedAt: Date;
 }

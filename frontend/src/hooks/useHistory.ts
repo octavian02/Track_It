@@ -4,96 +4,138 @@ import axios from "axios";
 
 type Result = {
   success: boolean;
-  watched: boolean;
+  count: number;
   error?: any;
 };
 
-export function useWatchedMovie(movieId: number) {
-  const [watched, setWatched] = useState(false);
+interface MovieHistoryRow {
+  mediaId: number;
+  mediaType: string;
+  watchCount: number;
+}
 
-  // on mount, fetch the list of watched movies and see if ours is in there
+interface EpisodeHistoryRow {
+  mediaId: number; // showId
+  mediaType: string; // "episode"
+  seasonNumber: number;
+  episodeNumber: number;
+  watchCount: number;
+}
+
+/**
+ * Hook for re-watchable movie history.
+ */
+export function useWatchedMovie(movieId: number) {
+  const [count, setCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // on mount, load the user's movie history and pick out our row
   useEffect(() => {
     (async () => {
       try {
         const { data } =
-          await axios.get<{ mediaId: number; mediaType: string }[]>(
-            "/api/history/movie"
-          );
-        setWatched(data.some((i) => i.mediaId === movieId));
+          await axios.get<MovieHistoryRow[]>("/api/history/movie");
+        const row = data.find((r) => r.mediaId === movieId);
+        setCount(row?.watchCount ?? 0);
       } catch (err) {
         console.error("Failed loading watched movies", err);
+      } finally {
+        setLoading(false);
       }
     })();
   }, [movieId]);
 
-  const toggle = async (mediaName?: string): Promise<Result> => {
+  // Mark or rewatch
+  const rewatch = async (mediaName?: string): Promise<Result> => {
     try {
-      if (watched) {
-        await axios.delete(`/api/history/movie/${movieId}`);
-      } else {
-        await axios.post(`/api/history/movie/${movieId}`, { mediaName });
-      }
-      setWatched(!watched);
-      return { success: true, watched: !watched };
+      const { data: row } = await axios.post<MovieHistoryRow>(
+        `/api/history/movie/${movieId}`,
+        { mediaName }
+      );
+      setCount(row.watchCount);
+      return { success: true, count: row.watchCount };
     } catch (error) {
-      console.error("Failed toggling watched", error);
-      return { success: false, watched, error };
+      console.error("Failed rewatching movie", error);
+      return { success: false, count, error };
     }
   };
 
-  return { watched, toggle };
+  // Unwatch one viewing
+  const unwatchOne = async (): Promise<Result> => {
+    try {
+      const { data } = await axios.delete<{ removed: boolean }>(
+        `/api/history/movie/${movieId}`
+      );
+      // decrement locally
+      setCount((c) => Math.max(0, c - 1));
+      return { success: true, count: Math.max(0, count - 1) };
+    } catch (error) {
+      console.error("Failed unwatching movie", error);
+      return { success: false, count, error };
+    }
+  };
+
+  return { count, loading, rewatch, unwatchOne };
 }
 
 /**
- * Tracks whether the current user has “watched” a specific episode.
+ * Hook for re-watchable episode history.
  */
 export function useWatchedEpisode(
   showId: number,
-  season: number,
-  episode: number
+  seasonNumber: number,
+  episodeNumber: number
 ) {
-  const [watched, setWatched] = useState(false);
+  const [count, setCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // on mount, load all watched‐episodes for this show and filter ours
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await axios.get<
-          {
-            mediaType: string;
-            mediaId: number; // showId
-            seasonNumber: number;
-            episodeNumber: number;
-          }[]
-        >(`/api/history/show/${showId}`);
-        setWatched(
-          data.some(
-            (i) => i.seasonNumber === season && i.episodeNumber === episode
-          )
+        const { data } = await axios.get<EpisodeHistoryRow[]>(
+          `/api/history/show/${showId}`
         );
+        const row = data.find(
+          (r) =>
+            r.seasonNumber === seasonNumber && r.episodeNumber === episodeNumber
+        );
+        setCount(row?.watchCount ?? 0);
       } catch (err) {
         console.error("Failed loading watched episodes", err);
+      } finally {
+        setLoading(false);
       }
     })();
-  }, [showId, season, episode]);
+  }, [showId, seasonNumber, episodeNumber]);
 
-  const toggle = async (): Promise<Result> => {
+  // Mark or rewatch this episode
+  const rewatch = async (): Promise<Result> => {
     try {
-      if (watched) {
-        await axios.delete(
-          `/api/history/show/${showId}/season/${season}/episode/${episode}`
-        );
-      } else {
-        await axios.post(
-          `/api/history/show/${showId}/season/${season}/episode/${episode}`
-        );
-      }
-      setWatched(!watched);
-      return { success: true, watched: !watched };
+      const { data: row } = await axios.post<EpisodeHistoryRow>(
+        `/api/history/episode/${showId}/${seasonNumber}/${episodeNumber}`
+      );
+      setCount(row.watchCount);
+      return { success: true, count: row.watchCount };
     } catch (error) {
-      console.error("Failed toggling episode", error);
-      return { success: false, watched, error };
+      console.error("Failed rewatching episode", error);
+      return { success: false, count, error };
     }
   };
 
-  return { watched, toggle };
+  // Unwatch one viewing of this episode
+  const unwatchOne = async (): Promise<Result> => {
+    try {
+      const { data } = await axios.delete<{ removed: boolean }>(
+        `/api/history/episode/${showId}/${seasonNumber}/${episodeNumber}`
+      );
+      setCount((c) => Math.max(0, c - 1));
+      return { success: true, count: Math.max(0, count - 1) };
+    } catch (error) {
+      console.error("Failed unwatching episode", error);
+      return { success: false, count, error };
+    }
+  };
+
+  return { count, loading, rewatch, unwatchOne };
 }

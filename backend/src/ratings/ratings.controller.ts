@@ -8,6 +8,8 @@ import {
   Body,
   UseGuards,
   Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from 'auth/jwt-auth.guard';
@@ -39,11 +41,10 @@ export class RatingsController {
   @Get('feed')
   async feed(
     @Request() req,
-    @Query('limit') limit = '6',
+    @Query('limit', new DefaultValuePipe('8'), new ParseIntPipe()) take: number,
   ): Promise<FeedItemDto[]> {
-    const meId = req.user.id;
-    const take = parseInt(limit, 10) || 6;
-    return this.svc.getFeedForUser(meId, take);
+    // at this point `take` is already a valid number
+    return this.svc.getFeedForUser(req.user.id, take);
   }
 
   @Get(':mediaId')

@@ -41,6 +41,7 @@ import FollowListDialog from "../components/FollowListDialog";
 import StatsPanel from "../components/StatsPanel";
 import { TrackingItem } from "../hooks/useTracking";
 import StatsSummary from "../components/StatsSummary";
+import MovieStatsPanel from "../components/MovieStatssPanel";
 
 interface Profile {
   id: number;
@@ -87,7 +88,7 @@ export default function ProfilePage() {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const { url: avatarUrl, loading: avatarLoading } = useAvatar(profile?.id);
-
+  const BIO_MAX = 200;
   // — FOLLOWERS / FOLLOWING STATE —
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
@@ -97,7 +98,7 @@ export default function ProfilePage() {
   const [loadingFollowing, setLoadingFollowing] = useState(false);
 
   // — TABS STATE —
-  const [tab, setTab] = useState<0 | 1 | 2>(0);
+  const [tab, setTab] = useState<0 | 1 | 2 | 3>(0);
 
   // — WATCHLIST / RATINGS STATE —
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
@@ -229,8 +230,11 @@ export default function ProfilePage() {
   const handleEditClose = () => setEditOpen(false);
   const handleFormChange =
     (field: "displayName" | "bio") =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setFormValues((prev) => ({ ...prev, [field]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      if (field === "bio" && value.length > BIO_MAX) return;
+      setFormValues((prev) => ({ ...prev, [field]: value }));
+    };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
@@ -254,8 +258,19 @@ export default function ProfilePage() {
           : formValues.avatarFile;
         formData.append("avatar", blob, formValues.avatarFile.name);
       }
-      const res = await axios.patch<Profile>("/api/user/me/profile", formData);
-      setProfile(res.data);
+      const res = await axios.patch<Partial<Profile>>(
+        "/api/user/me/profile",
+        formData
+      );
+      // keep the old counts/isFollowing on success
+      setProfile((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ...res.data,
+          // (res.data only contains id, username, displayName, avatarUrl, bio)
+        };
+      });
       notify({ message: "Profile updated", severity: "success" });
       setEditOpen(false);
     } catch {
@@ -357,6 +372,7 @@ export default function ProfilePage() {
           <Skeleton variant="circular" width={120} height={120} />
         ) : (
           <Avatar
+            key={profile.id}
             src={avatarUrl || undefined}
             alt={profile.displayName}
             sx={{
@@ -423,7 +439,7 @@ export default function ProfilePage() {
           </Button>
         )}
       </Paper>
-      <StatsSummary />
+      <StatsSummary userId={profile.id} />
       {/* EDIT PROFILE DIALOG */}
       <Dialog open={editOpen} onClose={handleEditClose} fullWidth maxWidth="sm">
         <DialogTitle>Edit Profile</DialogTitle>
@@ -482,6 +498,8 @@ export default function ProfilePage() {
               multiline
               rows={3}
               fullWidth
+              inputProps={{ maxLength: BIO_MAX }}
+              helperText={`${BIO_MAX - formValues.bio.length} characters remaining`}
             />
           </Box>
         </DialogContent>
@@ -503,7 +521,8 @@ export default function ProfilePage() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3 }}>
         <Tab label="Watchlist" />
         <Tab label="Ratings" />
-        {isOwn && <Tab label="Stats" />}
+        <Tab label="TV Stats" />
+        <Tab label="Movie Stats" />
       </Tabs>
 
       {/* WATCHLIST & RATINGS */}
@@ -620,6 +639,7 @@ export default function ProfilePage() {
       {tab === 2 && (
         <StatsPanel trackedShows={trackedShows} detailsMap={detailsMap} />
       )}
+      {tab === 3 && <MovieStatsPanel userId={profile.id} />}
       {/* FOLLOWERS / FOLLOWING DIALOGS */}
       <FollowListDialog
         open={followersOpen}

@@ -10,6 +10,10 @@ import {
   Tooltip,
   Dialog,
   DialogContent,
+  Chip,
+  IconButton,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import {
   FavoriteBorder as FavoriteBorderIcon,
@@ -17,7 +21,8 @@ import {
   PlayArrow as PlayArrowIcon,
 } from "@mui/icons-material";
 import CheckIcon from "@mui/icons-material/Check";
-import WatchLaterIcon from "@mui/icons-material/WatchLater";
+import ReplayIcon from "@mui/icons-material/Replay";
+import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
 import TrailerDialog from "../components/TrailerDialog";
 import { useNotify } from "../components/NotificationsContext";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
@@ -75,12 +80,22 @@ const MovieDetails: React.FC = () => {
   const [loadingRecs, setLoadingRecs] = useState(false);
   const notify = useNotify();
   const movieId = Number(id);
-  const { watched, toggle: toggleWatched } = useWatchedMovie(movieId);
+  const {
+    count,
+    loading: watchedLoading,
+    rewatch,
+    unwatchOne,
+  } = useWatchedMovie(movieId);
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
     movieId,
     movie?.title || "",
     "movie"
   );
+  const [snack, setSnack] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "info" | "warning" | "error";
+  }>({ open: false, message: "", severity: "info" });
 
   useEffect(() => {
     if (!id) return;
@@ -273,12 +288,12 @@ const MovieDetails: React.FC = () => {
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mt: 2,
+              flexWrap: "wrap",
               gap: 2,
+              mt: 3,
             }}
           >
+            {/* Trailer */}
             <Button
               size="medium"
               variant="contained"
@@ -291,7 +306,7 @@ const MovieDetails: React.FC = () => {
                 py: 1,
                 fontWeight: 600,
                 boxShadow: 2,
-                transition: "all 0.3s ease",
+                transition: "all 0.3s",
                 "&:hover": {
                   boxShadow: 6,
                   transform: "scale(1.05)",
@@ -301,6 +316,8 @@ const MovieDetails: React.FC = () => {
             >
               Trailer
             </Button>
+
+            {/* Watchlist */}
             <Button
               size="medium"
               variant={inWatchlist ? "contained" : "outlined"}
@@ -315,7 +332,7 @@ const MovieDetails: React.FC = () => {
                 py: 1,
                 fontWeight: 600,
                 boxShadow: 2,
-                transition: "all 0.3s ease",
+                transition: "all 0.3s",
                 "&:hover": {
                   boxShadow: 6,
                   transform: "scale(1.05)",
@@ -327,44 +344,105 @@ const MovieDetails: React.FC = () => {
             >
               {inWatchlist ? "In Watchlist" : "Add to Watchlist"}
             </Button>
-            <Button
-              size="medium"
-              variant={watched ? "contained" : "outlined"}
-              color={watched ? "success" : "primary"}
-              startIcon={watched ? <CheckIcon /> : <WatchLaterIcon />}
-              onClick={async () => {
-                const res = await toggleWatched(movie.title);
-                if (!res.success) {
-                  notify({
-                    message: "Could not update history",
-                    severity: "error",
+
+            {/* Mark / Rewatch Button */}
+            {watchedLoading ? null : count === 0 ? (
+              <Button
+                size="medium"
+                variant="outlined"
+                color="primary"
+                startIcon={<CheckIcon />}
+                onClick={async () => {
+                  await rewatch(movie.title);
+                  setSnack({
+                    open: true,
+                    message: "Marked watched",
+                    severity: "success",
                   });
-                }
-              }}
-              sx={{
-                borderRadius: "24px",
-                px: 3,
-                py: 1,
-                fontWeight: 600,
-                boxShadow: 2,
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  boxShadow: 6,
-                  transform: "scale(1.05)",
-                  backgroundColor: watched ? "#388e3c" : "#3f51b5",
-                  borderColor: watched ? "#388e3c" : "#303f9f",
-                },
-                minWidth: 140,
-                borderColor: watched ? "#4caf50" : "#3f51b5",
-                borderWidth: 2,
-                borderStyle: "solid",
-                "&:focus": {
-                  outline: "none",
-                },
-              }}
-            >
-              {watched ? "Watched" : "Mark as Watched"}
-            </Button>
+                }}
+                sx={{
+                  borderRadius: "24px",
+                  px: 3,
+                  py: 1,
+                  fontWeight: 600,
+                  boxShadow: 2,
+                  transition: "all 0.3s",
+                  "&:hover": {
+                    boxShadow: 6,
+                    transform: "scale(1.05)",
+                    backgroundColor: "#1976d2",
+                    color: "#fff",
+                  },
+                }}
+              >
+                Mark as Watched
+              </Button>
+            ) : (
+              <Button
+                size="medium"
+                variant="contained"
+                color="success"
+                startIcon={<ReplayIcon />}
+                onClick={async () => {
+                  await rewatch(movie.title);
+                  setSnack({
+                    open: true,
+                    message: "Rewatched movie",
+                    severity: "info",
+                  });
+                }}
+                sx={{
+                  borderRadius: "24px",
+                  px: 3,
+                  py: 1,
+                  fontWeight: 600,
+                  boxShadow: 2,
+                  transition: "all 0.3s",
+                  "&:hover": {
+                    boxShadow: 6,
+                    transform: "scale(1.05)",
+                    backgroundColor: "#2e7d32",
+                  },
+                  position: "relative",
+                }}
+              >
+                Rewatch
+                <Chip
+                  label={count}
+                  size="small"
+                  sx={{ ml: 1, bgcolor: "#fff", color: "#2e7d32" }}
+                />
+              </Button>
+            )}
+
+            {/* Unwatch One Viewing */}
+            {count > 0 && (
+              <Tooltip title="Remove one viewing">
+                <IconButton
+                  color="error"
+                  onClick={async () => {
+                    await unwatchOne();
+                    setSnack({
+                      open: true,
+                      message: "Removed one viewing",
+                      severity: "warning",
+                    });
+                  }}
+                  sx={{
+                    border: "2px solid",
+                    borderColor: "error.main",
+                    borderRadius: "50%",
+                    p: 1.2,
+                    ml: 1,
+                    "&:hover": {
+                      backgroundColor: "rgba(244, 67, 54, 0.1)",
+                    },
+                  }}
+                >
+                  <RemoveCircleIcon />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
       </Box>
@@ -453,6 +531,20 @@ const MovieDetails: React.FC = () => {
           </Box>
         </DialogContent>
       </Dialog>
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3000}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+          severity={snack.severity}
+          sx={{ width: "100%" }}
+        >
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

@@ -24,6 +24,12 @@ export class UserService {
     return this.usersRepo.findOne({ where: { username } });
   }
 
+  async findOneById(id: number): Promise<User> {
+    const u = await this.usersRepo.findOne({ where: { id } });
+    if (!u) throw new NotFoundException(`User with id ${id} not found`);
+    return u;
+  }
+
   async createUser(dto: CreateUserDto) {
     const hash = await bcrypt.hash(dto.password, 10);
     const displayName = dto.displayName?.trim() || dto.username;

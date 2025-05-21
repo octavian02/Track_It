@@ -13,7 +13,6 @@ import {
   CircularProgress,
   Box,
   Tooltip,
-  Button,
   ToggleButtonGroup,
   ToggleButton,
   IconButton,
@@ -23,7 +22,6 @@ import {
   ArrowBack as ArrowBackIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "@mui/material/styles";
 
 interface RawItem {
   mediaId: number;
@@ -39,8 +37,6 @@ interface EnrichedItem extends RawItem {
 }
 
 export default function WatchlistPage() {
-  const theme = useTheme();
-  const textColor = theme.palette.text.primary;
   const navigate = useNavigate();
   const { username: paramUsername } = useParams<{ username?: string }>();
   const { user } = useAuth();
@@ -59,13 +55,26 @@ export default function WatchlistPage() {
     let mounted = true;
     setLoading(true);
 
-    axios
-      .get<RawItem[]>("/api/watchlist")
-      .then(async (res) => {
-        if (!mounted) return;
+    (async () => {
+      try {
+        // 1) Figure out whose ID to use
+        const profileUrl = isOwn
+          ? "/api/user/me/profile"
+          : `/api/user/${paramUsername}/profile`;
+        const { data: prof } = await axios.get<{
+          id: number;
+          displayName: string;
+        }>(profileUrl);
+        const userId = prof.id;
+
+        // 2) Fetch their watchlist
+        const { data: raw } = await axios.get<RawItem[]>(
+          `/api/watchlist?userId=${userId}`
+        );
+
+        // 3) Enrich each item
         const enriched = await Promise.all(
-          res.data.map(async (it) => {
-            // fetch poster & rating
+          raw.map(async (it) => {
             const kind = it.mediaType === "movie" ? "movies" : "shows";
             const { data } = await axios.get<any>(`/api/${kind}/${it.mediaId}`);
             return {
@@ -78,17 +87,21 @@ export default function WatchlistPage() {
             };
           })
         );
-        // sort newest-first
+
+        // 4) Sort & set
         enriched.sort((a, b) => b.dateAdded.getTime() - a.dateAdded.getTime());
-        setItems(enriched);
-      })
-      .catch((err) => console.error("Failed to load watchlist", err))
-      .finally(() => mounted && setLoading(false));
+        if (mounted) setItems(enriched);
+      } catch (err) {
+        console.error("Failed to load watchlist", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
 
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [paramUsername, isOwn]);
 
   if (loading) {
     return (

@@ -74,6 +74,9 @@ const ShowDetails: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [castDialog, setCastDialog] = useState(false);
   const [avgRuntime, setAvgRuntime] = useState<number | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<
+    { seasonNumber: number; episodeNumber: number }[]
+  >([]);
 
   const { inWatchlist, toggle: toggleWatchlist } = useWatchlist(
     Number(id),
@@ -116,6 +119,16 @@ const ShowDetails: React.FC = () => {
         console.error("Error loading show details", e);
       }
     })();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    axios
+      .get<{ seasonNumber: number; episodeNumber: number }[]>(
+        `/api/history/show/${id}`
+      )
+      .then((res) => setHistoryEntries(res.data))
+      .catch(() => {});
   }, [id]);
 
   // — fetch avg runtime
@@ -189,7 +202,7 @@ const ShowDetails: React.FC = () => {
   const year = new Date(show.first_air_date).getFullYear();
 
   const lastEp = show.last_episode_to_air;
-  const seasons = show.seasons;
+  const seasons = show.seasons.filter((s) => s.season_number > 0);
 
   let totalAired = 0;
   if (lastEp) {
@@ -197,20 +210,16 @@ const ShowDetails: React.FC = () => {
     totalAired =
       seasons
         .filter((s) => s.season_number < lastEp.season_number)
-        .reduce((sum, s) => sum + s.episode_count, 0) +
-      // plus the episodes in the last aired season
-      lastEp.episode_number;
+        .reduce((sum, s) => sum + s.episode_count, 0) + lastEp.episode_number;
   }
-  const pointer = tracking ?? pausedEntry;
   // compute how many you've watched so far:
-  const watchedCount = pointer
-    ? // sum fully‐watched seasons
-      show.seasons
-        .filter((s) => s.season_number < pointer.seasonNumber)
-        .reduce((sum, s) => sum + s.episode_count, 0) +
-      // plus the episodes in the current season
-      pointer.episodeNumber
-    : 0;
+  const watchedSet = new Set<string>();
+  for (const h of historyEntries) {
+    if (h.seasonNumber > 0) {
+      watchedSet.add(`${h.seasonNumber}:${h.episodeNumber}`);
+    }
+  }
+  const watchedCount = watchedSet.size;
 
   // percentage clamped to 100
   const percent =

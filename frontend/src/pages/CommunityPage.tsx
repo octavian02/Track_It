@@ -12,6 +12,7 @@ import {
   CardContent,
   Skeleton,
   Avatar,
+  Tooltip,
 } from "@mui/material";
 import { Star as StarIcon } from "@mui/icons-material";
 import axios from "axios";
@@ -46,7 +47,7 @@ export default function CommunityPage() {
     let cancelled = false;
     setLoadingFeed(true);
     axios
-      .get<FeedItem[]>("/api/ratings/feed", { params: { limit: 6 } })
+      .get<FeedItem[]>("/api/ratings/feed", { params: { limit: 8 } })
       .then((res) => {
         if (!cancelled) setFeed(res.data);
       })
@@ -166,11 +167,11 @@ export default function CommunityPage() {
                         {f.displayName || f.username}
                       </Typography>
                     </Box>
-
-                    <Typography variant="subtitle2" noWrap>
-                      {f.mediaName}
-                    </Typography>
-
+                    <Tooltip title={f.mediaName}>
+                      <Typography variant="subtitle2" noWrap>
+                        {f.mediaName}
+                      </Typography>
+                    </Tooltip>
                     {/* golden star + score + date */}
                     <Box
                       display="flex"

@@ -50,7 +50,7 @@ export class RatingsService {
     return this.repo.find({ where: { user: { id: userId }, mediaType } });
   }
 
-  async getFeedForUser(meId: number, limit = 6): Promise<FeedItemDto[]> {
+  async getFeedForUser(meId: number, limit = 8): Promise<FeedItemDto[]> {
     // 1) find your followings
     const followingIds = await this.followService.getFollowingIds(meId);
     if (followingIds.length === 0) return [];

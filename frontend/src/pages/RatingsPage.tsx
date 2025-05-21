@@ -28,39 +28,61 @@ interface RawRating {
   mediaName: string;
   mediaType: "movie" | "tv";
   score: number;
-  dateAdded: Date; // mapped from ratedAt
+  dateAdded: Date; // ISO string from backend
 }
 
 interface EnrichedRating extends RawRating {
   posterUrl?: string;
   tmdbRating?: number;
-  dateAdded: Date;
+  dateAdded: Date; // parsed
 }
 
 export default function RatingsPage() {
-  const { username } = useParams<{ username?: string }>();
+  const { username: paramUsername } = useParams<{ username?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isOwn = !username || username === "me" || username === user?.username;
-  const profilePath = isOwn ? "/user/me/profile" : `/user/${username}/profile`;
+
+  // Are we looking at our own ratings?
+  const isOwn =
+    !paramUsername ||
+    paramUsername === "me" ||
+    paramUsername === user?.username;
+
+  // Where to go back to
+  const profilePath = isOwn
+    ? "/user/me/profile"
+    : `/user/${paramUsername}/profile`;
 
   const [items, setItems] = useState<EnrichedRating[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "movie" | "tv">("all");
+  const [ownerName, setOwnerName] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    const url = isOwn
-      ? "/api/ratings"
-      : `/api/ratings?userId=${encodeURIComponent(username!)}`;
 
-    axios
-      .get<RawRating[]>(url)
-      .then(async (res) => {
+    (async () => {
+      try {
+        // 1) Fetch profile to get numeric id & displayName
+        const profileUrl = isOwn
+          ? "/api/user/me/profile"
+          : `/api/user/${paramUsername}/profile`;
+        const { data: prof } = await axios.get<{
+          id: number;
+          displayName: string;
+        }>(profileUrl);
         if (!mounted) return;
+        setOwnerName(prof.displayName);
+
+        // 2) Fetch their ratings
+        const { data: raw } = await axios.get<RawRating[]>(
+          `/api/ratings?userId=${prof.id}`
+        );
+
+        // 3) Enrich each with poster & tmdbRating
         const enriched = await Promise.all(
-          res.data.map(async (r) => {
+          raw.map(async (r) => {
             const kind = r.mediaType === "movie" ? "movies" : "shows";
             const { data } = await axios.get<any>(`/api/${kind}/${r.mediaId}`);
             return {
@@ -73,17 +95,21 @@ export default function RatingsPage() {
             };
           })
         );
-        // newest-first
+
+        // 4) Sort newest-first & set
         enriched.sort((a, b) => b.dateAdded.getTime() - a.dateAdded.getTime());
-        setItems(enriched);
-      })
-      .catch(console.error)
-      .finally(() => mounted && setLoading(false));
+        if (mounted) setItems(enriched);
+      } catch (err) {
+        console.error("Failed to load ratings", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
 
     return () => {
       mounted = false;
     };
-  }, [username, user, isOwn]);
+  }, [paramUsername, isOwn, user]);
 
   if (loading) {
     return (
@@ -93,13 +119,14 @@ export default function RatingsPage() {
     );
   }
 
+  // Apply media-type filter
   const filtered = items.filter(
     (it) => filter === "all" || it.mediaType === filter
   );
 
   return (
     <Container sx={{ py: 4 }}>
-      {/* Back to profile + Title */}
+      {/* Back + Title */}
       <Box display="flex" alignItems="center" mb={3}>
         <IconButton
           onClick={() => navigate(profilePath)}
@@ -120,7 +147,7 @@ export default function RatingsPage() {
             fontWeight: 600,
           }}
         >
-          {isOwn ? "My Ratings" : `${username}'s Ratings`}
+          {isOwn ? "My Ratings" : `${ownerName}'s Ratings`}
         </Typography>
       </Box>
 
@@ -138,11 +165,12 @@ export default function RatingsPage() {
         </ToggleButtonGroup>
       </Box>
 
+      {/* Empty state */}
       {filtered.length === 0 ? (
         <Typography color="text.secondary">
           {isOwn
             ? "You haven’t rated anything yet."
-            : "This user hasn’t rated anything yet."}
+            : `${ownerName} hasn’t rated anything yet.`}
         </Typography>
       ) : (
         <Grid container spacing={2}>
@@ -172,6 +200,7 @@ export default function RatingsPage() {
                     <Typography variant="subtitle2" noWrap>
                       {it.mediaName}
                     </Typography>
+
                     <Box display="flex" alignItems="center" mt={1}>
                       {it.tmdbRating != null && (
                         <Box display="flex" alignItems="center">
@@ -185,13 +214,14 @@ export default function RatingsPage() {
                       )}
                       {it.score != null && (
                         <Box display="flex" alignItems="center" ml={2}>
-                          <Tooltip title="User Rating">
+                          <Tooltip title="Your rating">
                             <StarIcon sx={{ color: "#4caf50", mr: 0.5 }} />
                           </Tooltip>
                           <Typography variant="body2">{it.score}</Typography>
                         </Box>
                       )}
                     </Box>
+
                     <Typography
                       variant="caption"
                       color="text.secondary"
