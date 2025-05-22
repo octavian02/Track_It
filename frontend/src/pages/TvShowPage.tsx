@@ -1,7 +1,7 @@
 // src/pages/TvShowsPage.tsx
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import ShowCarousel from "../components/ShowCarousel";
+import ShowCarousel from "../components/TVShowCarousel";
 import { useNotify } from "../components/NotificationsContext";
 import "./MainPage.css"; // reuse your main page styles
 import HeroCarousel, { BannerMedia } from "../components/HeroCarousel";
@@ -16,7 +16,7 @@ interface ShowFull {
   first_air_date: string;
 }
 
-const TvShowsPage: React.FC = () => {
+const TvShowPage: React.FC = () => {
   const [featured, setFeatured] = useState<ShowFull | null>(null);
   const [trending, setTrending] = useState<ShowFull[]>([]);
   const [popular, setPopular] = useState<ShowFull[]>([]);
@@ -106,4 +106,4 @@ const TvShowsPage: React.FC = () => {
   );
 };
 
-export default TvShowsPage;
+export default TvShowPage;

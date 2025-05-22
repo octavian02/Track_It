@@ -1,5 +1,5 @@
 // src/components/SearchBar.tsx
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import debounce from "lodash/debounce";
 import {

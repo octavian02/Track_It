@@ -1,8 +1,8 @@
 // src/components/ReleaseScheduler.tsx
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import dayjs from "dayjs";
 import { useNotifications } from "../contexts/NotificationContext";
-import { UpcomingShow } from "../components/UpcomingShowCard"; // wherever your UpcomingShow type lives
+import { UpcomingShow } from "./TVShowUpcomingCard"; // wherever your UpcomingShow type lives
 
 interface Props {
   upcoming: UpcomingShow[];

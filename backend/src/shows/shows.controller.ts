@@ -33,7 +33,9 @@ export class ShowsController {
 
   @Get(':id')
   async getDetails(@Param('id') id: string) {
-    return await this.showsService.getDetails(+id);
+    const details = await this.showsService.getDetails(+id);
+    const avgRuntime = await this.showsService.getAverageEpisodeRuntime(+id);
+    return { ...details, averageRuntime: avgRuntime };
   }
 
   @Get(':id/similar')

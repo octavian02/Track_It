@@ -1,9 +1,9 @@
 import React from "react";
 import Slider from "react-slick";
-import "./MovieCarousel.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import MovieCard from "./MovieCard";
+import "./MovieCarousel.css";
 
 interface Movie {
   id: number;
@@ -42,7 +42,10 @@ const MovieCarousel: React.FC<MovieCarouselProps> = ({ title, movies }) => {
   };
 
   return (
-    <div className="carousel-container">
+    <div
+      className="carousel-container"
+      style={{ overflow: "visible", position: "relative" }}
+    >
       <h2 className="carousel-heading">{title}</h2>
       <Slider {...settings}>
         {movies.map((movie) => (

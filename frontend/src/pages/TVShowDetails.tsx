@@ -1,16 +1,17 @@
 // src/pages/ShowDetails.tsx
 import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   Box,
-  Typography,
   Button,
   Rating,
   Tooltip,
   Dialog,
   DialogContent,
   LinearProgress,
+  Typography,
+  Link,
 } from "@mui/material";
 import {
   FavoriteBorder as FavoriteBorderIcon,
@@ -96,7 +97,9 @@ const ShowDetails: React.FC = () => {
     (async () => {
       try {
         const [showRes, creditsRes, videosRes, ratingRes] = await Promise.all([
-          axios.get<ShowDetail>(`/api/shows/${id}`),
+          axios.get<ShowDetail & { averageRuntime: number }>(
+            `/api/shows/${id}`
+          ),
           axios.get<{ cast: CastMember[]; crew: CrewMember[] }>(
             `/api/shows/${id}/aggregate_credits`
           ),
@@ -105,6 +108,7 @@ const ShowDetails: React.FC = () => {
         ]);
 
         setShow(showRes.data);
+        setAvgRuntime(showRes.data.averageRuntime);
         setAllCast(creditsRes.data.cast);
         setCast(creditsRes.data.cast.slice(0, 9));
         setCrew(creditsRes.data.crew);
@@ -131,19 +135,6 @@ const ShowDetails: React.FC = () => {
       .catch(() => {});
   }, [id]);
 
-  // — fetch avg runtime
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await axios.get<{ averageRuntime: number }>(
-          `/api/shows/${id}/avg-runtime`
-        );
-        setAvgRuntime(data.averageRuntime);
-      } catch {
-        setAvgRuntime(null);
-      }
-    })();
-  }, [id]);
   // — toggle watchlist
   const handleWatchToggle = async () => {
     const res = await toggleWatchlist();
@@ -245,12 +236,26 @@ const ShowDetails: React.FC = () => {
           <Typography variant="subtitle1" className="sub">
             {year} •{" "}
             <Link
+              component={RouterLink}
               to={`/tv/${id}/seasons`}
-              style={{ textDecoration: "none", fontWeight: 600 }}
+              color="primary.light" // bright on dark background
+              underline="hover"
+              sx={{
+                fontWeight: 600,
+                px: 0.5, // a bit of padding so it’s easier to hit
+                borderRadius: 1,
+                transition: "background-color 0.2s",
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.1)",
+                },
+                "&:visited": {
+                  color: "primary.light", // prevent that default purple
+                },
+              }}
             >
               {show.number_of_seasons} seasons
             </Link>
-            {avgRuntime !== null && <> • {avgRuntime} min avg ep</>}
+            {avgRuntime != null && <> • {avgRuntime} min avg ep</>}
           </Typography>
 
           <Box sx={{ mt: 2 }} className="detail-extra">
@@ -424,13 +429,13 @@ const ShowDetails: React.FC = () => {
           }}
         >
           <Typography variant="h5">Top Cast</Typography>
-          <Link
+          <RouterLink
             to={`/tv/${id}/credits`}
             style={{ textDecoration: "none" }}
             onClick={() => setCastDialog(true)}
           >
             <Button variant="text">See All</Button>
-          </Link>
+          </RouterLink>
         </Box>
         <Box className="cast-grid">
           {cast.map((m) => {

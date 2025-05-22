@@ -1,0 +1,5 @@
+/* RecommendationsPage.css */
+.recommendation-carousel .slick-prev:before,
+.recommendation-carousel .slick-next:before {
+  color: #000 !important; /* just make the arrows black */
+}

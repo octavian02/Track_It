@@ -1,9 +1,9 @@
 import React from "react";
 import Slider from "react-slick";
-import "./MovieCarousel.css"; // re-use your carousel styles
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import ShowCard from "./ShowCard"; // your ShowCard component
+import "./MovieCarousel.css"; // re-use your carousel styles
+import ShowCard from "./TVShowCard"; // your ShowCard component
 
 interface Show {
   id: number;

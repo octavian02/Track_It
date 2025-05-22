@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import MovieCard from "../components/MovieCard";
-import ShowCard from "../components/ShowCard";
+import ShowCard from "../components/TVShowCard";
 
 interface Genre {
   id: number;

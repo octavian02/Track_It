@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 import MovieCarousel from "../components/MovieCarousel";
-import ShowCarousel from "../components/ShowCarousel";
+import ShowCarousel from "../components/TVShowCarousel";
 import HeroCarousel, { BannerMedia } from "../components/HeroCarousel";
 import "./MainPage.css";
 

@@ -13,11 +13,12 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import PortraitPlaceholder from "../static/Portrait_Placeholder.png";
-import TrackedShowCard from "../components/TrackedShowCard";
-import UpcomingShowCard, { UpcomingShow } from "../components/UpcomingShowCard";
+import TVShowTrackCard from "../components/TVShowTrackCard";
+import UpcomingShowCard, {
+  UpcomingShow,
+} from "../components/TVShowUpcomingCard";
 import EpisodeHistoryDialog from "../components/EpisodeHistoryDialog";
 import { useNotify } from "../components/NotificationsContext";
-import ReleaseScheduler from "../components/ReleaseScheduler";
 
 interface TrackingEntry {
   id: number;
@@ -297,7 +298,7 @@ export default function TrackShowsPage() {
               <Grid container spacing={2}>
                 {inProg.map((e) => (
                   <Grid key={e.id} item xs={12} sm={6} md={4} lg={3}>
-                    <TrackedShowCard
+                    <TVShowTrackCard
                       entryId={e.id}
                       showId={e.showId}
                       isNewest={e.id === newestEntryId}
@@ -322,7 +323,7 @@ export default function TrackShowsPage() {
               <Grid container spacing={2}>
                 {notStarted.map((e) => (
                   <Grid key={e.id} item xs={12} sm={6} md={4} lg={3}>
-                    <TrackedShowCard
+                    <TVShowTrackCard
                       entryId={e.id}
                       showId={e.showId}
                       onViewHistory={(showId, showName) =>
@@ -346,7 +347,7 @@ export default function TrackShowsPage() {
               <Grid container spacing={2}>
                 {paused.map((e) => (
                   <Grid key={e.id} item xs={12} sm={6} md={4} lg={3}>
-                    <TrackedShowCard
+                    <TVShowTrackCard
                       entryId={e.id}
                       showId={e.showId}
                       paused={true}

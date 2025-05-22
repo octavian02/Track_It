@@ -21,9 +21,8 @@ import HelpPage from "./pages/HelpPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import { AuthProvider } from "./contexts/AuthContext";
-import ShowDetails from "./pages/ShowDetails";
-import TvShowsPage from "./pages/TvShowPage";
-import ShowCredits from "./pages/ShowCredits";
+import ShowDetails from "./pages/TVShowDetails";
+import ShowCredits from "./pages/TVShowCredits";
 import MoviePage from "./pages/MoviePage";
 import { WatchlistProvider } from "./contexts/WatchlistContext";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -31,13 +30,14 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import SearchPage from "./pages/SearchPage";
 import CommunityPage from "./pages/CommunityPage";
 import ProfilePage from "./pages/ProfilePage";
-import ShowSeasons from "./pages/ShowSeasons";
+import ShowSeasons from "./pages/TVShowSeasons";
 import TrackShowsPage from "./pages/TrackShowsPage";
 import WatchlistPage from "./pages/WatchlistPage";
 import RatingsPage from "./pages/RatingsPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import TVShowPage from "./pages/TVShowPage";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -65,7 +65,7 @@ const router = createBrowserRouter(
         <Route path="/help" element={<HelpPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/tv" element={<TvShowsPage />} />
+        <Route path="/tv" element={<TVShowPage />} />
         <Route path="/tv/:id" element={<ShowDetails />} />
         <Route path="/tv/:id/credits" element={<ShowCredits />} />
         <Route path="tv/:id/seasons" element={<ShowSeasons />} />

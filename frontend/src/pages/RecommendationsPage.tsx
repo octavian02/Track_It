@@ -9,8 +9,9 @@ import {
   Paper,
   useTheme,
 } from "@mui/material";
-import ShowCarousel from "../components/ShowCarousel";
+import ShowCarousel from "../components/TVShowCarousel";
 import MovieCarousel from "../components/MovieCarousel";
+import "./RecommendationsPage.css";
 
 interface TMDBShow {
   id: number;
@@ -115,42 +116,46 @@ const RecommendationsPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
+        <Container>
+          {/* TV Shows Carousel */}
+          {hasTV && (
+            <Paper
+              elevation={1}
+              sx={{
+                mb: 4,
+                p: 2,
+                bgcolor: theme.palette.background.paper,
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h5" gutterBottom>
+                TV Shows You Might Like
+              </Typography>
+              <div className="recommendation-carousel">
+                <ShowCarousel title="" shows={tvRecs} />
+              </div>
+            </Paper>
+          )}
 
-        {/* TV Shows Carousel */}
-        {hasTV && (
-          <Paper
-            elevation={1}
-            sx={{
-              mb: 4,
-              p: 2,
-              bgcolor: theme.palette.background.paper,
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="h5" gutterBottom>
-              TV Shows You Might Like
-            </Typography>
-            <ShowCarousel title="" shows={tvRecs} />
-          </Paper>
-        )}
-
-        {hasMovies && (
-          <Paper
-            elevation={1}
-            sx={{
-              mb: 4,
-              p: 2,
-              bgcolor: theme.palette.background.paper,
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="h5" gutterBottom>
-              Movies You Might Like
-            </Typography>
-            <MovieCarousel title="" movies={movieRecs} />
-          </Paper>
-        )}
-
+          {hasMovies && (
+            <Paper
+              elevation={1}
+              sx={{
+                mb: 4,
+                p: 2,
+                bgcolor: theme.palette.background.paper,
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h5" gutterBottom>
+                Movies You Might Like
+              </Typography>
+              <div className="recommendation-carousel">
+                <MovieCarousel title="" movies={movieRecs} />
+              </div>
+            </Paper>
+          )}
+        </Container>
         {/* No Recommendations Fallback */}
         {!hasTV && !hasMovies && (
           <Box textAlign="center" mt={4}>

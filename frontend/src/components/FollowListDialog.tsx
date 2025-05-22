@@ -1,5 +1,4 @@
 // src/components/FollowListDialog.tsx
-import React from "react";
 import {
   Dialog,
   DialogTitle,

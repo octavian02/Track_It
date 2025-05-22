@@ -38,10 +38,10 @@ import { getCroppedImg } from "../utils/cropImage";
 import ImageWithFallback from "../components/ImageWithFallback";
 import { useAvatar } from "../hooks/useAvatar";
 import FollowListDialog from "../components/FollowListDialog";
-import StatsPanel from "../components/StatsPanel";
+import StatsPanel from "../components/TVStatsPanel";
 import { TrackingItem } from "../hooks/useTracking";
 import StatsSummary from "../components/StatsSummary";
-import MovieStatsPanel from "../components/MovieStatssPanel";
+import MovieStatsPanel from "../components/MovieStatsPanel";
 
 interface Profile {
   id: number;

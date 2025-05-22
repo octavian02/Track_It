@@ -1,40 +1,72 @@
+// src/pages/SignUp.tsx
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button, TextField, Typography } from "@mui/material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Snackbar,
+  TextField,
+  Typography,
+  Alert,
+  Link,
+} from "@mui/material";
 import backgroundImage from "../static/war-planet.jpg";
 import axios from "axios";
 
-const SignUp = () => {
+export default function SignUp() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [snack, setSnack] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const navigate = useNavigate();
 
-  const handleSignUp = async (event: any) => {
+  // Simple email regex
+  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  const validate = () => {
+    const newErrors: typeof errors = {
+      username: username ? "" : "Username is required",
+      email: emailRegex.test(email) ? "" : "Enter a valid email",
+      password:
+        password.length >= 6 ? "" : "Password must be at least 6 characters",
+      confirmPassword:
+        confirmPassword === password ? "" : "Passwords must match",
+    };
+    setErrors(newErrors);
+    return Object.values(newErrors).every((e) => e === "");
+  };
+
+  const handleSignUp = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
+    if (!validate()) return;
     try {
-      await axios.post("/api/auth/signup", {
-        username,
-        email,
-        password,
+      await axios.post("/api/auth/signup", { username, email, password });
+      setSnack({
+        open: true,
+        message: "Signup successful! Redirecting…",
+        severity: "success",
       });
-      navigate("/");
-    } catch (error: any) {
-      console.error("Failed to signup:", error.response.data);
-      alert(
-        "Signup failed: " + (error.response.data.message || "Unknown Error")
-      );
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Signup failed";
+      setSnack({ open: true, message: msg, severity: "error" });
     }
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         height: "100vh",
         display: "flex",
         justifyContent: "center",
@@ -42,8 +74,8 @@ const SignUp = () => {
         position: "relative",
       }}
     >
-      <div
-        style={{
+      <Box
+        sx={{
           position: "absolute",
           top: 0,
           left: 0,
@@ -55,82 +87,97 @@ const SignUp = () => {
           filter: "blur(8px)",
           zIndex: 1,
         }}
-      ></div>
-      <form
+      />
+      <Box
+        component="form"
         onSubmit={handleSignUp}
-        style={{
-          padding: "20px",
-          borderRadius: "8px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-          backgroundColor: "rgba(255, 255, 255, 0.85)",
-          width: "300px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
+        sx={{
           position: "relative",
           zIndex: 2,
+          width: 300,
+          p: 3,
+          bgcolor: "rgba(255,255,255,0.9)",
+          borderRadius: 2,
+          boxShadow: 3,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
         }}
+        noValidate
       >
-        <Typography
-          variant="h5"
-          style={{ textAlign: "center", marginBottom: "20px" }}
-        >
+        <Typography variant="h5" align="center">
           Sign Up
         </Typography>
+
         <TextField
           label="Username"
-          variant="outlined"
-          fullWidth
-          required
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          style={{ marginBottom: "10px" }}
-        />
-        <TextField
-          label="Email"
-          variant="outlined"
+          error={!!errors.username}
+          helperText={errors.username}
           fullWidth
           required
+        />
+
+        <TextField
+          label="Email"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ marginBottom: "10px" }}
+          error={!!errors.email}
+          helperText={errors.email}
+          fullWidth
+          required
         />
+
         <TextField
           label="Password"
           type="password"
-          variant="outlined"
-          fullWidth
-          required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ marginBottom: "10px" }}
+          error={!!errors.password}
+          helperText={errors.password}
+          fullWidth
+          required
         />
+
         <TextField
           label="Confirm Password"
           type="password"
-          variant="outlined"
-          fullWidth
-          required
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          style={{ marginBottom: "10px" }}
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword}
+          fullWidth
+          required
         />
-        <Button type="submit" variant="contained" color="primary" fullWidth>
+
+        <Button type="submit" variant="contained" fullWidth>
           Sign Up
         </Button>
-        <Typography style={{ marginTop: "20px", textAlign: "center" }}>
+
+        <Typography variant="body2" align="center">
           Already have an account?{" "}
-          <Link
-            to="/"
-            onClick={() => navigate("/")}
-            style={{ cursor: "pointer" }}
-          >
+          <Link component={RouterLink} to="/" underline="hover">
             Log In
           </Link>
         </Typography>
-      </form>
-    </div>
-  );
-};
 
-export default SignUp;
+        <Snackbar
+          open={snack.open}
+          autoHideDuration={4000}
+          onClose={() => setSnack((s) => ({ ...s, open: false }))}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnack((s) => ({ ...s, open: false }))}
+            severity={snack.severity as any}
+            sx={{ width: "100%" }}
+          >
+            {snack.message}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </Box>
+  );
+}
