@@ -75,7 +75,6 @@ export default function StatsPage() {
     let mounted = true;
     async function fetchStats() {
       try {
-        // 1) fetch profile to get id & displayName
         const profileUrl = isOwn
           ? "/api/user/me/profile"
           : `/api/user/${paramUsername}/profile`;
@@ -87,7 +86,6 @@ export default function StatsPage() {
         setOwnerName(prof.displayName);
         setOwnerId(prof.id);
 
-        // 2) fetch all stats in parallel
         const qs = `?userId=${prof.id}`;
         const [
           { data: gData },
