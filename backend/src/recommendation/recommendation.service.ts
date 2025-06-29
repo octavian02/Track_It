@@ -31,7 +31,7 @@ export class RecommendationService implements OnModuleInit {
   private items: RawItem[] = [];
 
   constructor() {
-    // 1) Cohere key
+    // 1) Cohere key FOLOSESC COHERE
     const cohereApiKey = process.env.COHERE_API_KEY;
     if (!cohereApiKey) {
       throw new Error('COHERE_API_KEY not set');
@@ -50,7 +50,7 @@ export class RecommendationService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    this.logger.log('Loading popular items from TMDB (pages 1–3)…');
+    this.logger.log('Loading popular items from TMDB (pages 1-3)…');
 
     // Preload first 3 pages of both movies and TV
     const pages = [1, 2, 3];

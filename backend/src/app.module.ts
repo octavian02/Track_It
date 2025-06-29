@@ -17,6 +17,9 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { HistoryModule } from './history/history.module';
 import { TrackingModule } from './tracking/tracking.module';
 import { RecommendationModule } from './recommendation/recommendation.module';
+import { GenresModule } from './genres/genre.module';
+import { MediaModule } from './media/media.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -55,6 +58,9 @@ import { RecommendationModule } from './recommendation/recommendation.module';
     HistoryModule,
     TrackingModule,
     RecommendationModule,
+    GenresModule,
+    MediaModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

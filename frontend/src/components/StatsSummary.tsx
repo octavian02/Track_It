@@ -13,6 +13,9 @@ import TvIcon from "@mui/icons-material/Tv";
 import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
 import MovieIcon from "@mui/icons-material/Movie";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
+import { Button as MuiButton } from "@mui/material";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { useNavigate } from "react-router-dom";
 
 interface StatsSummaryProps {
   userId?: number;
@@ -41,6 +44,7 @@ export default function StatsSummary({ userId }: StatsSummaryProps) {
     moviesWatched: number;
   }>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const url = userId
@@ -150,6 +154,15 @@ export default function StatsSummary({ userId }: StatsSummaryProps) {
             </Paper>
           </Grid>
         ))}
+        <Box textAlign="right" mt={2}>
+          <MuiButton
+            variant="outlined"
+            endIcon={<ArrowForwardIosIcon />}
+            onClick={() => navigate("/user/stats")}
+          >
+            All Stats
+          </MuiButton>
+        </Box>
       </Grid>
     </Box>
   );

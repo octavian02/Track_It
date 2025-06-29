@@ -8,6 +8,7 @@ import { TrackingModule } from 'src/tracking/tracking.module';
 import { ShowsModule } from 'src/shows/shows.module';
 import { MoviesModule } from 'src/movies/movies.module';
 import { UserModule } from 'src/user/user.module';
+import { MediaModule } from 'src/media/media.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UserModule } from 'src/user/user.module';
     ShowsModule,
     MoviesModule,
     UserModule,
+    MediaModule,
   ],
   providers: [HistoryService],
   controllers: [HistoryController],

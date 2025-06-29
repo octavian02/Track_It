@@ -7,6 +7,8 @@ import { User } from '../user/user.entity';
 import { ShowsService } from 'src/shows/shows.service';
 import { MoviesService } from 'src/movies/movies.service';
 import { SummaryDto } from './dto/summary.dto';
+import { MediaService } from 'src/media/media.service';
+import { MediaTypes } from 'src/media/media.entity';
 
 @Injectable()
 export class HistoryService {
@@ -15,6 +17,7 @@ export class HistoryService {
     private readonly repo: Repository<History>,
     private readonly showsSvc: ShowsService,
     private readonly moviesSvc: MoviesService,
+    private readonly mediaSvc: MediaService,
   ) {}
 
   async markMovie(
@@ -22,6 +25,11 @@ export class HistoryService {
     movieId: number,
     mediaName?: string,
   ): Promise<History> {
+    const media = await this.mediaSvc.upsertWithGenres(
+      movieId,
+      MediaTypes.MOVIE,
+    );
+
     let entry = await this.repo.findOne({
       where: {
         user: { id: user.id },
@@ -81,6 +89,7 @@ export class HistoryService {
     mediaName?: string,
     episodeName?: string,
   ): Promise<History> {
+    const media = await this.mediaSvc.upsertWithGenres(showId, MediaTypes.TV);
     // 1) Backfill show title if needed
     if (!mediaName) {
       const show = await this.showsSvc.getDetails(showId);

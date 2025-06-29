@@ -38,6 +38,7 @@ import RecommendationsPage from "./pages/RecommendationsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import TVShowPage from "./pages/TVShowPage";
+import StatsPage from "./pages/StatsPage";
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -72,6 +73,7 @@ const router = createBrowserRouter(
         <Route path="/search" element={<SearchPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route path="/user/:username/profile" element={<ProfilePage />} />
+        <Route path="/user/stats" element={<StatsPage />} />
         <Route path="/track" element={<TrackShowsPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
         <Route path="/user/:username/watchlist" element={<WatchlistPage />} />
