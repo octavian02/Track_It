@@ -1,5 +1,4 @@
-// src/components/StatsSummary.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Box,
@@ -15,13 +14,12 @@ import MovieIcon from "@mui/icons-material/Movie";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import { Button as MuiButton } from "@mui/material";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 interface StatsSummaryProps {
   userId?: number;
 }
 
-// turn minutes into [ { count, unit }, ... ]
 function formatMinutes(totalMinutes: number) {
   const totalHours = Math.floor(totalMinutes / 60);
   const hours = totalHours % 24;
@@ -36,6 +34,8 @@ function formatMinutes(totalMinutes: number) {
 }
 
 export default function StatsSummary({ userId }: StatsSummaryProps) {
+  const { username } = useParams<{ username: string }>();
+  const isOwn = username === "me";
   const theme = useTheme();
   const [summary, setSummary] = useState<null | {
     tvTime: number;
@@ -154,15 +154,17 @@ export default function StatsSummary({ userId }: StatsSummaryProps) {
             </Paper>
           </Grid>
         ))}
-        <Box textAlign="right" mt={2}>
-          <MuiButton
-            variant="outlined"
-            endIcon={<ArrowForwardIosIcon />}
-            onClick={() => navigate("/user/stats")}
-          >
-            All Stats
-          </MuiButton>
-        </Box>
+        {isOwn && (
+          <Box textAlign="right" mt={2}>
+            <MuiButton
+              variant="outlined"
+              endIcon={<ArrowForwardIosIcon />}
+              onClick={() => navigate("/user/stats")}
+            >
+              All Stats
+            </MuiButton>
+          </Box>
+        )}
       </Grid>
     </Box>
   );
